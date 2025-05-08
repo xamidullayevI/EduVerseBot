@@ -3,6 +3,7 @@ body {
     padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     display: flex;
+    flex-direction: row;
     height: 100vh;
     background: var(--tg-theme-bg-color, #fff);
     color: var(--tg-theme-text-color, #000);
@@ -10,15 +11,20 @@ body {
 
 .sidebar {
     width: 250px;
+    min-width: 200px;
+    max-width: 300px;
     padding: 20px;
     border-right: 1px solid var(--tg-theme-hint-color, #ccc);
     overflow-y: auto;
+    background: #fff;
+    box-sizing: border-box;
 }
 
 .main {
     flex: 1;
     padding: 20px;
     overflow-y: auto;
+    min-width: 0;
 }
 
 #topics-list {
@@ -151,13 +157,5 @@ img, video {
     margin: 10px 0;
 }
 #webapp-btn {
-    background: #2481cc;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 8px 18px;
-    font-size: 1em;
-    margin: 10px 0 20px 0;
-    cursor: pointer;
-    display: inline-block;
+    display: none;
 } 

@@ -1,4 +1,4 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, KeyboardButton, ReplyKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import ContextTypes
 import aiohttp
 import os
@@ -12,15 +12,17 @@ def is_admin(user_id):
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if is_admin(update.message.from_user.id):
+        # Admin uchun WebApp tugmasi (chat oynasida, stiker yonida)
+        keyboard = [[KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))]]
+        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
         await update.message.reply_text(
-            "Admin panelga xush kelibsiz! /new bilan yangi mavzu boshlang.\n\n"
-            f"Web App: {WEBAPP_URL}"
+            "Admin panelga xush kelibsiz! /new bilan yangi mavzu boshlang.",
+            reply_markup=reply_markup
         )
     else:
         # Contact so'rash uchun tugma yaratamiz
         keyboard = [[KeyboardButton("📱 Contact yuborish", request_contact=True)]]
         reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-        
         await update.message.reply_text(
             "EduVerse botiga xush kelibsiz! Davom etish uchun contact ma'lumotlaringizni yuboring.",
             reply_markup=reply_markup
