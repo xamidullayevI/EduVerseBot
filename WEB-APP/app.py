@@ -4,17 +4,34 @@ from flask_cors import CORS
 import os
 from sqlalchemy import create_engine
 from sqlalchemy_utils import database_exists, create_database
-from dotenv import load_dotenv  # 👉 .env faylni o‘qish uchun kerak
+from dotenv import load_dotenv
 import pymysql
+import logging
+from werkzeug.utils import secure_filename
+import uuid
+from datetime import datetime
 
-load_dotenv()  # 👉 .env fayldagi o‘zgaruvchilarni yuklaydi
+# Log yozish sozlamalari
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO,
+    filename='webapp.log'
+)
+logger = logging.getLogger(__name__)
+
+load_dotenv()
 pymysql.install_as_MySQLdb()
 
 app = Flask(__name__)
 
+# Fayl yuklash sozlamalari
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'mov'}
+MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50MB
+
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
 
 # --- Bazani sozlash ---
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'mysql://user:password@localhost:3306/eduverse')
@@ -25,9 +42,9 @@ db_url = app.config['SQLALCHEMY_DATABASE_URI']
 engine = create_engine(db_url)
 if not database_exists(engine.url):
     create_database(engine.url)
-    print(f"Baza yaratildi: {engine.url}")
+    logger.info(f"Baza yaratildi: {engine.url}")
 else:
-    print(f"Baza allaqachon mavjud: {engine.url}")
+    logger.info(f"Baza allaqachon mavjud: {engine.url}")
 
 # --- Baza ulanishi ---
 db = SQLAlchemy(app)
@@ -40,6 +57,7 @@ class Contact(db.Model):
     first_name = db.Column(db.String(255))
     last_name = db.Column(db.String(255))
     phone_number = db.Column(db.String(32))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Topic(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -48,75 +66,133 @@ class Topic(db.Model):
     examples = db.Column(db.Text)
     image_url = db.Column(db.String(255))
     video_url = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+def allowed_file(filename):
+    """Fayl kengaytmasini tekshirish"""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def generate_filename(filename):
+    """Xavfsiz fayl nomi yaratish"""
+    ext = filename.rsplit('.', 1)[1].lower()
+    return f"{uuid.uuid4().hex}.{ext}"
 
 # --- API: contact saqlash ---
 @app.route('/api/contacts', methods=['POST'])
 def save_contact():
-    data = request.json
-    user_id = data.get('user_id')
-    first_name = data.get('first_name')
-    last_name = data.get('last_name')
-    phone_number = data.get('phone_number')
+    try:
+        data = request.json
+        if not data:
+            return jsonify({'error': 'Ma\'lumotlar yo\'q'}), 400
 
-    contact = Contact.query.filter_by(user_id=user_id).first()
-    if not contact:
-        contact = Contact(user_id=user_id, first_name=first_name, last_name=last_name, phone_number=phone_number)
-        db.session.add(contact)
-    else:
-        contact.first_name = first_name
-        contact.last_name = last_name
-        contact.phone_number = phone_number
-    db.session.commit()
-    return jsonify({'status': 'ok'})
+        user_id = data.get('user_id')
+        first_name = data.get('first_name')
+        last_name = data.get('last_name')
+        phone_number = data.get('phone_number')
+
+        if not all([user_id, first_name, phone_number]):
+            return jsonify({'error': 'Majburiy maydonlar to\'ldirilmagan'}), 400
+
+        contact = Contact.query.filter_by(user_id=user_id).first()
+        if not contact:
+            contact = Contact(
+                user_id=user_id,
+                first_name=first_name,
+                last_name=last_name,
+                phone_number=phone_number
+            )
+            db.session.add(contact)
+        else:
+            contact.first_name = first_name
+            contact.last_name = last_name
+            contact.phone_number = phone_number
+
+        db.session.commit()
+        logger.info(f"Contact saqlandi: {user_id}")
+        return jsonify({'status': 'ok'})
+
+    except Exception as e:
+        logger.error(f"Contact saqlash xatolik: {e}")
+        db.session.rollback()
+        return jsonify({'error': 'Server xatolik'}), 500
 
 # --- API: barcha topics ---
 @app.route('/api/topics', methods=['GET', 'POST'])
 def topics():
-    if request.method == 'POST':
-        data = request.json
-        topic = Topic(
-            title=data.get('title'),
-            structure=data.get('structure'),
-            examples=data.get('examples'),
-            image_url=data.get('image_url'),
-            video_url=data.get('video_url')
-        )
-        db.session.add(topic)
-        db.session.commit()
-        return jsonify({'status': 'ok'})
-    else:
-        all_topics = Topic.query.all()
-        return jsonify([{
-            'id': t.id,
-            'title': t.title
-        } for t in all_topics])
+    try:
+        if request.method == 'POST':
+            data = request.json
+            if not data:
+                return jsonify({'error': 'Ma\'lumotlar yo\'q'}), 400
+
+            if not all([data.get('title'), data.get('structure'), data.get('examples')]):
+                return jsonify({'error': 'Majburiy maydonlar to\'ldirilmagan'}), 400
+
+            topic = Topic(
+                title=data.get('title'),
+                structure=data.get('structure'),
+                examples=data.get('examples'),
+                image_url=data.get('image_url'),
+                video_url=data.get('video_url')
+            )
+            db.session.add(topic)
+            db.session.commit()
+            logger.info(f"Yangi mavzu qo'shildi: {topic.title}")
+            return jsonify({'status': 'ok'})
+        else:
+            all_topics = Topic.query.order_by(Topic.created_at.desc()).all()
+            return jsonify([{
+                'id': t.id,
+                'title': t.title
+            } for t in all_topics])
+
+    except Exception as e:
+        logger.error(f"Topics API xatolik: {e}")
+        db.session.rollback()
+        return jsonify({'error': 'Server xatolik'}), 500
 
 # --- API: 1ta topic tafsiloti ---
 @app.route('/api/topics/<int:topic_id>')
 def topic_detail(topic_id):
-    t = Topic.query.get_or_404(topic_id)
-    return jsonify({
-        'id': t.id,
-        'title': t.title,
-        'structure': t.structure,
-        'examples': t.examples,
-        'image_url': t.image_url,
-        'video_url': t.video_url
-    })
+    try:
+        t = Topic.query.get_or_404(topic_id)
+        return jsonify({
+            'id': t.id,
+            'title': t.title,
+            'structure': t.structure,
+            'examples': t.examples,
+            'image_url': t.image_url,
+            'video_url': t.video_url
+        })
+    except Exception as e:
+        logger.error(f"Topic detail xatolik: {e}")
+        return jsonify({'error': 'Server xatolik'}), 500
 
 # --- Fayl yuklash endpoint ---
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file'}), 400
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'No filename'}), 400
-    filename = file.filename
-    save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(save_path)
-    url = f"/static/uploads/{filename}"
-    return jsonify({'url': url})
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'Fayl yuborilmagan'}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'Fayl nomi yo\'q'}), 400
+
+        if not allowed_file(file.filename):
+            return jsonify({'error': 'Ruxsat etilmagan fayl turi'}), 400
+
+        filename = generate_filename(file.filename)
+        save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(save_path)
+        url = f"/static/uploads/{filename}"
+        
+        logger.info(f"Fayl yuklandi: {filename}")
+        return jsonify({'url': url})
+
+    except Exception as e:
+        logger.error(f"Fayl yuklash xatolik: {e}")
+        return jsonify({'error': 'Server xatolik'}), 500
 
 # --- HTML sahifa uchun route ---
 @app.route('/')
