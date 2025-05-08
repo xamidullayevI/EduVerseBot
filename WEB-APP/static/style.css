@@ -5,8 +5,8 @@ body {
     display: flex;
     flex-direction: row;
     height: 100vh;
-    background: var(--tg-theme-bg-color, #fff);
-    color: var(--tg-theme-text-color, #000);
+    background: var(--tg-theme-bg-color, #f8f9fa);
+    color: var(--tg-theme-text-color, #222);
 }
 
 .sidebar {
@@ -14,10 +14,13 @@ body {
     min-width: 200px;
     max-width: 300px;
     padding: 20px;
-    border-right: 1px solid var(--tg-theme-hint-color, #ccc);
+    border-right: 1px solid #e5e5e5;
     overflow-y: auto;
     background: #fff;
     box-sizing: border-box;
+    min-height: 100vh;
+    transition: left 0.3s;
+    z-index: 1000;
 }
 
 .main {
@@ -25,6 +28,11 @@ body {
     padding: 20px;
     overflow-y: auto;
     min-width: 0;
+    min-height: 100vh;
+    background: #f8f9fa;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    margin-top: 0;
 }
 
 #topics-list {
@@ -52,7 +60,7 @@ body {
 .loader {
     text-align: center;
     padding: 20px;
-    color: var(--tg-theme-hint-color, #999);
+    color: #2481cc;
 }
 
 img, video {
@@ -85,7 +93,7 @@ img, video {
 }
 
 /* Sidebar mobil uchun */
-@media (max-width: 768px) {
+@media (max-width: 991px) {
     body {
         flex-direction: column;
     }
@@ -93,14 +101,10 @@ img, video {
     .sidebar {
         position: fixed;
         left: -260px;
-        top: 0;
-        width: 250px;
-        height: 100vh;
-        background: #fff;
-        z-index: 1000;
-        transition: left 0.3s;
-        border-bottom: none;
-        border-right: 1px solid var(--tg-theme-hint-color, #ccc);
+        top: 56px;
+        width: 220px;
+        height: calc(100vh - 56px);
+        box-shadow: 2px 0 8px rgba(0,0,0,0.04);
     }
     .sidebar.open {
         left: 0;
@@ -110,6 +114,12 @@ img, video {
     }
     body.menu-open {
         overflow: hidden;
+    }
+    .main {
+        margin-top: 16px;
+    }
+    .navbar {
+        z-index: 1100;
     }
 }
 
@@ -158,4 +168,34 @@ img, video {
 }
 #webapp-btn {
     display: none;
+}
+
+.topic-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    padding: 24px;
+    margin-bottom: 24px;
+    transition: box-shadow 0.2s;
+}
+.topic-card:hover {
+    box-shadow: 0 4px 16px rgba(36,129,204,0.08);
+}
+.topic-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 12px;
+}
+.topic-structure, .topic-examples {
+    margin-bottom: 10px;
+}
+.topic-media {
+    margin: 16px 0;
+    text-align: center;
+}
+.topic-media img, .topic-media video, .topic-media iframe {
+    max-width: 100%;
+    border-radius: 10px;
+    margin: 8px 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 } 

@@ -1,32 +1,74 @@
 let tg = window.Telegram.WebApp;
 
+// Hamburger menu (Bootstrap bilan)
+const hamburger = document.getElementById('hamburger-menu');
+const sidebar = document.getElementById('sidebar');
+hamburger.onclick = () => {
+    sidebar.classList.toggle('open');
+    document.body.classList.toggle('menu-open');
+};
+
+// Qidiruv
+const searchInput = document.getElementById('search-input');
+let allTopics = [];
+
 async function loadTopics() {
     const res = await fetch('/api/topics');
-    const topics = await res.json();
+    allTopics = await res.json();
+    renderTopics(allTopics);
+    document.querySelector('.loader').style.display = 'none';
+}
+
+function renderTopics(topics) {
     const list = document.getElementById('topics-list');
     list.innerHTML = '';
     topics.forEach(topic => {
         const li = document.createElement('li');
+        li.className = 'list-group-item';
         li.textContent = topic.title;
         li.onclick = () => showTopic(topic.id, li);
         list.appendChild(li);
     });
-    document.querySelector('.loader').style.display = 'none';
 }
 
+searchInput.oninput = () => {
+    const val = searchInput.value.toLowerCase();
+    const filtered = allTopics.filter(t => t.title.toLowerCase().includes(val));
+    renderTopics(filtered);
+};
+
 async function showTopic(id, li) {
-    document.querySelectorAll('.sidebar li').forEach(el => el.classList.remove('active'));
-    li.classList.add('active');
+    document.querySelectorAll('.sidebar .list-group-item').forEach(el => el.classList.remove('active'));
+    if (li) li.classList.add('active');
     const res = await fetch(`/api/topics/${id}`);
     const topic = await res.json();
     const main = document.getElementById('main-content');
     main.innerHTML = `
-        <h2>${topic.title}</h2>
-        <p><b>Strukturasi:</b> ${topic.structure}</p>
-        <p><b>Misollar:</b> ${topic.examples}</p>
-        ${topic.image_url ? `<img src="${topic.image_url}" alt="Rasm">` : ''}
-        ${topic.video_url ? `<video src="${topic.video_url}" controls></video>` : ''}
+        <div class="topic-card">
+            <div class="topic-title">${topic.title}</div>
+            <div class="topic-structure"><b>Strukturasi:</b> ${topic.structure}</div>
+            <div class="topic-examples"><b>Misollar:</b> ${topic.examples}</div>
+            <div class="topic-media">
+                ${topic.image_url ? `<img src="${topic.image_url}" alt="Rasm">` : ''}
+                ${topic.video_url ? renderVideo(topic.video_url) : ''}
+            </div>
+        </div>
     `;
+}
+
+function renderVideo(url) {
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+        let videoId = '';
+        if (url.includes('youtu.be/')) {
+            videoId = url.split('youtu.be/')[1].split(/[?&]/)[0];
+        } else if (url.includes('v=')) {
+            videoId = url.split('v=')[1].split('&')[0];
+        }
+        if (videoId) {
+            return `<iframe width="360" height="215" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>`;
+        }
+    }
+    return `<video src="${url}" controls style="max-width:360px;"></video>`;
 }
 
 // Telegram WebApp ready
@@ -35,14 +77,6 @@ tg.expand();
 
 // Load topics when page loads
 loadTopics();
-
-// Hamburger menu
-const hamburger = document.getElementById('hamburger-menu');
-const sidebar = document.getElementById('sidebar');
-hamburger.onclick = () => {
-    sidebar.classList.toggle('open');
-    document.body.classList.toggle('menu-open');
-};
 
 // Webapp tugmasi (admin uchun doim ko'rinadi)
 document.getElementById('webapp-btn').onclick = () => {
