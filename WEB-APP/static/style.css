@@ -195,10 +195,25 @@ img, video {
     text-align: center;
 }
 .topic-media img, .topic-media video, .topic-media iframe {
+    display: block;
+    margin: 0 auto 12px auto;
     max-width: 100%;
+    max-height: 240px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
     border-radius: 10px;
-    margin: 8px 0;
-    box-shadow: 0 2px 8px rgba(0, 38, 255, 0.06);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    background: #000;
+}
+
+.topic-media video, .topic-media iframe {
+    width: 100%;
+    max-width: 100%;
+    height: 220px;
+    min-height: 120px;
+    object-fit: contain;
+    background: #000;
 }
 
 .sidebar .list-group-item.active, .sidebar .list-group-item:hover {
@@ -207,4 +222,17 @@ img, video {
     font-weight: 600;
     border: none;
     transition: background 0.2s, color 0.2s;
+}
+
+#search-form {
+    position: relative;
+}
+#search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1002;
+    width: 100%;
+    min-width: 180px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 } 
