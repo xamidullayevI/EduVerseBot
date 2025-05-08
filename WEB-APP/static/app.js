@@ -65,6 +65,14 @@ searchResults.onclick = e => {
     }
 };
 
+function renderExamples(text) {
+    // Har bir nuqta bilan tugaydigan gapni raqamlab chiqaradi
+    if (!text) return '';
+    // Split by ". " (nuqta va probel) va filter bo'shlarni olib tashlash
+    const sentences = text.split('.').map(s => s.trim()).filter(Boolean);
+    return '<ol>' + sentences.map(s => `<li>${s}.</li>`).join('') + '</ol>';
+}
+
 async function showTopic(id, li) {
     document.querySelectorAll('.sidebar .list-group-item').forEach(el => el.classList.remove('active'));
     if (li) li.classList.add('active');
@@ -75,7 +83,7 @@ async function showTopic(id, li) {
         <div class="topic-card">
             <div class="topic-title">${topic.title}</div>
             <div class="topic-structure"><b>Strukturasi:</b> ${topic.structure}</div>
-            <div class="topic-examples"><b>Misollar:</b> ${topic.examples}</div>
+            <div class="topic-examples"><b>Misollar:</b> ${renderExamples(topic.examples)}</div>
             <div class="topic-media">
                 ${topic.image_url ? `<img src="${topic.image_url}" alt="Rasm">` : ''}
                 ${topic.video_url ? renderVideo(topic.video_url) : ''}

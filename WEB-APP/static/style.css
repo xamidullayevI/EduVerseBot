@@ -216,12 +216,19 @@ img, video {
     background: #000;
 }
 
+.sidebar .list-group-item {
+    background: #f4f8fb;
+    color: #2481cc;
+    font-weight: 500;
+    border: none;
+    margin-bottom: 6px;
+    transition: background 0.2s, color 0.2s;
+}
 .sidebar .list-group-item.active, .sidebar .list-group-item:hover {
     background: #3498db !important;
     color: #fff !important;
     font-weight: 600;
     border: none;
-    transition: background 0.2s, color 0.2s;
 }
 
 #search-form {
