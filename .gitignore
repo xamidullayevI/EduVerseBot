@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+
+# Environment variables
+.env
+BOT/.env
+WEB-APP/.env
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Static/media uploads (agar kerak bo'lsa, o'zgartiring)
+WEB-APP/static/uploads/ 
