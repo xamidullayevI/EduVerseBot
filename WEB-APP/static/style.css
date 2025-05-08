@@ -108,6 +108,15 @@ img, video {
 }
 
 /* --- Yangi mavzu formasi --- */
+#new-topic-form,
+#new-topic-form input,
+#new-topic-form textarea,
+#new-topic-form label,
+#new-topic-form button,
+#new-topic-form .preview {
+    display: none !important;
+}
+
 #new-topic-form {
     background: #f9f9f9;
     border-radius: 10px;
