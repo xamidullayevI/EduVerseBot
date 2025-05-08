@@ -5,6 +5,7 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy_utils import database_exists, create_database
 from dotenv import load_dotenv  # 👉 .env faylni o‘qish uchun kerak
+import pymysql
 
 load_dotenv()  # 👉 .env fayldagi o‘zgaruvchilarni yuklaydi
 
@@ -107,4 +108,5 @@ def index():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+    pymysql.install_as_MySQLdb()
     app.run(debug=True)
