@@ -176,4 +176,12 @@ form.onsubmit = async e => {
     videoPreview.innerHTML = '';
     loadTopics();
     alert('Mavzu qo\'shildi!');
+};
+
+// Main-contentga bosilganda sidebar yopiladi (faqat mobil uchun)
+document.getElementById('main-content').onclick = () => {
+    if (window.innerWidth < 992 && sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+        document.body.classList.remove('menu-open');
+    }
 }; 
