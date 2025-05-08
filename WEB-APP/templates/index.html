@@ -15,8 +15,9 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <!-- <span class="navbar-brand fw-bold">EduVerse</span> -->
-            <form class="d-flex ms-auto" id="search-form">
-                <input class="form-control me-2" type="search" placeholder="Qidiruv..." aria-label="Search" id="search-input">
+            <form class="d-flex ms-auto position-relative" id="search-form">
+                <input class="form-control me-2" type="search" placeholder="Qidiruv..." aria-label="Search" id="search-input" autocomplete="off">
+                <div id="search-results" class="dropdown-menu w-100" style="max-height:220px;overflow:auto;"></div>
             </form>
         </div>
     </nav>

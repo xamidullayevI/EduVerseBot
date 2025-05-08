@@ -31,10 +31,38 @@ function renderTopics(topics) {
     });
 }
 
+const searchResults = document.getElementById('search-results');
+
 searchInput.oninput = () => {
     const val = searchInput.value.toLowerCase();
+    if (!val) {
+        searchResults.classList.remove('show');
+        renderTopics(allTopics);
+        return;
+    }
     const filtered = allTopics.filter(t => t.title.toLowerCase().includes(val));
     renderTopics(filtered);
+
+    // Dropdown natijalar
+    if (filtered.length > 0) {
+        searchResults.innerHTML = filtered.map(t =>
+            `<button class="dropdown-item" type="button" data-id="${t.id}">${t.title}</button>`
+        ).join('');
+        searchResults.classList.add('show');
+    } else {
+        searchResults.innerHTML = '<span class="dropdown-item text-muted">Hech narsa topilmadi</span>';
+        searchResults.classList.add('show');
+    }
+};
+
+// Natijaga bosilganda mavzu tafsiloti ochiladi
+searchResults.onclick = e => {
+    if (e.target.matches('.dropdown-item[data-id]')) {
+        const id = e.target.getAttribute('data-id');
+        showTopic(id);
+        searchResults.classList.remove('show');
+        searchInput.value = '';
+    }
 };
 
 async function showTopic(id, li) {
