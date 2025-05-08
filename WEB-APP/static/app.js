@@ -214,10 +214,15 @@ form.onsubmit = async e => {
     alert('Mavzu qo\'shildi!');
 };
 
-// Main-contentga bosilganda sidebar yopiladi (faqat mobil uchun)
-document.getElementById('main-content').onclick = () => {
-    if (window.innerWidth < 992 && sidebar.classList.contains('open')) {
+// Sidebar faol bo'lsa, sidebar tashqarisiga bosilganda yopiladi
+document.addEventListener('click', function (e) {
+    if (
+        window.innerWidth < 992 &&
+        sidebar.classList.contains('open') &&
+        !sidebar.contains(e.target) &&
+        !hamburger.contains(e.target)
+    ) {
         sidebar.classList.remove('open');
         document.body.classList.remove('menu-open');
     }
-}; 
+}); 
