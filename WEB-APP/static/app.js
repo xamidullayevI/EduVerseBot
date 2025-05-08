@@ -62,6 +62,8 @@ searchResults.onclick = e => {
         showTopic(id);
         searchResults.classList.remove('show');
         searchInput.value = '';
+        // Barcha mavzularni qayta ko'rsatish
+        renderTopics(allTopics);
     }
 };
 
@@ -214,15 +216,16 @@ form.onsubmit = async e => {
     alert('Mavzu qo\'shildi!');
 };
 
-// Sidebar faol bo'lsa, sidebar tashqarisiga bosilganda yopiladi
-document.addEventListener('click', function (e) {
+// Sidebar faol bo'lsa, faqat main-content yoki navbar ustiga bosilganda yopiladi
+document.getElementById('main-content').addEventListener('click', closeSidebarIfOpen);
+document.querySelector('.navbar').addEventListener('click', closeSidebarIfOpen);
+
+function closeSidebarIfOpen(e) {
     if (
         window.innerWidth < 992 &&
-        sidebar.classList.contains('open') &&
-        !sidebar.contains(e.target) &&
-        !hamburger.contains(e.target)
+        sidebar.classList.contains('open')
     ) {
         sidebar.classList.remove('open');
         document.body.classList.remove('menu-open');
     }
-}); 
+} 
