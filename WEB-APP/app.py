@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import os
@@ -11,6 +11,10 @@ load_dotenv()  # 👉 .env fayldagi o‘zgaruvchilarni yuklaydi
 pymysql.install_as_MySQLdb()
 
 app = Flask(__name__)
+
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # --- Bazani sozlash ---
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'mysql://user:password@localhost:3306/eduverse')
@@ -99,6 +103,20 @@ def topic_detail(topic_id):
         'image_url': t.image_url,
         'video_url': t.video_url
     })
+
+# --- Fayl yuklash endpoint ---
+@app.route('/api/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No filename'}), 400
+    filename = file.filename
+    save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(save_path)
+    url = f"/static/uploads/{filename}"
+    return jsonify({'url': url})
 
 # --- HTML sahifa uchun route ---
 @app.route('/')

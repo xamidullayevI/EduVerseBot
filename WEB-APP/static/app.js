@@ -34,4 +34,112 @@ tg.ready();
 tg.expand();
 
 // Load topics when page loads
-loadTopics(); 
+loadTopics();
+
+// Hamburger menu
+const hamburger = document.getElementById('hamburger-menu');
+const sidebar = document.getElementById('sidebar');
+hamburger.onclick = () => {
+    sidebar.classList.toggle('open');
+    document.body.classList.toggle('menu-open');
+};
+
+// Webapp tugmasi (admin uchun doim ko'rinadi)
+document.getElementById('webapp-btn').onclick = () => {
+    window.open(window.location.href, '_blank');
+};
+
+// Yangi mavzu formasi
+const form = document.getElementById('new-topic-form');
+const imageFile = document.getElementById('image-file');
+const imageLink = document.getElementById('image-link');
+const imagePreview = document.getElementById('image-preview');
+const videoFile = document.getElementById('video-file');
+const videoLink = document.getElementById('video-link');
+const videoPreview = document.getElementById('video-preview');
+
+imageFile.onchange = () => {
+    if (imageFile.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            imagePreview.innerHTML = `<img src="${e.target.result}" style="max-width:200px;">`;
+        };
+        reader.readAsDataURL(imageFile.files[0]);
+    }
+};
+imageLink.oninput = () => {
+    if (imageLink.value) {
+        imagePreview.innerHTML = `<img src="${imageLink.value}" style="max-width:200px;">`;
+    } else {
+        imagePreview.innerHTML = '';
+    }
+};
+videoFile.onchange = () => {
+    if (videoFile.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            videoPreview.innerHTML = `<video src="${e.target.result}" controls style="max-width:300px;"></video>`;
+        };
+        reader.readAsDataURL(videoFile.files[0]);
+    }
+};
+videoLink.oninput = () => {
+    if (videoLink.value.includes('youtube.com') || videoLink.value.includes('youtu.be')) {
+        // YouTube linkdan video ID ajratib iframe ko'rsatish
+        let videoId = '';
+        if (videoLink.value.includes('youtu.be/')) {
+            videoId = videoLink.value.split('youtu.be/')[1].split(/[?&]/)[0];
+        } else if (videoLink.value.includes('v=')) {
+            videoId = videoLink.value.split('v=')[1].split('&')[0];
+        }
+        if (videoId) {
+            videoPreview.innerHTML = `<iframe width="300" height="180" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>`;
+        }
+    } else if (videoLink.value) {
+        videoPreview.innerHTML = `<video src="${videoLink.value}" controls style="max-width:300px;"></video>`;
+    } else {
+        videoPreview.innerHTML = '';
+    }
+};
+
+form.onsubmit = async e => {
+    e.preventDefault();
+    const data = {
+        title: form.title.value,
+        structure: form.structure.value,
+        examples: form.examples.value,
+        image_url: '',
+        video_url: ''
+    };
+    // Rasm yuklash yoki link
+    if (imageFile.files[0]) {
+        const fd = new FormData();
+        fd.append('file', imageFile.files[0]);
+        const res = await fetch('/api/upload', { method: 'POST', body: fd });
+        const json = await res.json();
+        data.image_url = json.url;
+    } else if (imageLink.value) {
+        data.image_url = imageLink.value;
+    }
+    // Video yuklash yoki link
+    if (videoFile.files[0]) {
+        const fd = new FormData();
+        fd.append('file', videoFile.files[0]);
+        const res = await fetch('/api/upload', { method: 'POST', body: fd });
+        const json = await res.json();
+        data.video_url = json.url;
+    } else if (videoLink.value) {
+        data.video_url = videoLink.value;
+    }
+    // Yangi mavzuni saqlash
+    await fetch('/api/topics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+    form.reset();
+    imagePreview.innerHTML = '';
+    videoPreview.innerHTML = '';
+    loadTopics();
+    alert('Mavzu qo\'shildi!');
+}; 

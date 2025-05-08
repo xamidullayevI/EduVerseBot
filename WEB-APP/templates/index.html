@@ -8,11 +8,34 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="sidebar">
+    <div class="hamburger" id="hamburger-menu">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+    <button id="webapp-btn">Webapp</button>
+    <div class="sidebar" id="sidebar">
         <h2>Mavzular</h2>
         <ul id="topics-list"></ul>
     </div>
     <div class="main" id="main-content">
+        <form id="new-topic-form">
+            <label for="title">Mavzu nomi</label>
+            <input type="text" id="title" name="title" required>
+            <label for="structure">Strukturasi</label>
+            <textarea id="structure" name="structure" required></textarea>
+            <label for="examples">Misollar</label>
+            <textarea id="examples" name="examples" required></textarea>
+            <label for="image">Rasm (yuklash yoki link)</label>
+            <input type="file" id="image-file" accept="image/*">
+            <input type="text" id="image-link" placeholder="https://rasm-url.com/rasm.jpg">
+            <div class="preview" id="image-preview"></div>
+            <label for="video">Video (yuklash yoki YouTube link)</label>
+            <input type="file" id="video-file" accept="video/*">
+            <input type="text" id="video-link" placeholder="https://youtube.com/... yoki video url">
+            <div class="preview" id="video-preview"></div>
+            <button type="submit">Yangi mavzu qo'shish</button>
+        </form>
         <div class="loader">Mavzular yuklanmoqda...</div>
     </div>
     <script src="/static/app.js"></script>
