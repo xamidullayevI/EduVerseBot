@@ -104,7 +104,7 @@ img, video {
         top: 56px;
         width: 220px;
         height: calc(100vh - 56px);
-        box-shadow: 2px 0 8px rgba(0,0,0,0.04);
+        box-shadow: 2px 0 8px rgba(18, 120, 255, 0.04);
     }
     .sidebar.open {
         left: 0;
@@ -173,7 +173,7 @@ img, video {
 .topic-card {
     background: #fff;
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    box-shadow: 0 2px 8px rgba(0, 119, 255, 0.04);
     padding: 24px;
     margin-bottom: 24px;
     transition: box-shadow 0.2s;
@@ -197,7 +197,7 @@ img, video {
     max-width: 100%;
     border-radius: 10px;
     margin: 8px 0;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    box-shadow: 0 2px 8px rgba(0, 38, 255, 0.06);
 }
 
 .sidebar .list-group-item.active, .sidebar .list-group-item:hover {
