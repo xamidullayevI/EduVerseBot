@@ -83,9 +83,17 @@ async def video_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if 'topic' not in context.user_data:
         await update.message.reply_text("Iltimos, /new bilan boshlang.")
         return
-    video = update.message.video
-    file = await video.get_file()
-    context.user_data['topic']['video_url'] = file.file_path
+    # Agar video fayl yuborilsa
+    if update.message.video:
+        video = update.message.video
+        file = await video.get_file()
+        context.user_data['topic']['video_url'] = file.file_path
+    # Agar matn (link) yuborilsa
+    elif update.message.text and (update.message.text.startswith('http://') or update.message.text.startswith('https://')):
+        context.user_data['topic']['video_url'] = update.message.text
+    else:
+        await update.message.reply_text("Video fayl yoki video havolasini yuboring.")
+        return
     await update.message.reply_text("Barcha ma'lumotlar qabul qilindi. /confirm bosing.")
 
 async def skip(update: Update, context: ContextTypes.DEFAULT_TYPE):
