@@ -70,6 +70,19 @@ class Topic(db.Model):
     video_url = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+class News(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255))
+    content = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Feedback(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.BigInteger)
+    topic_id = db.Column(db.Integer)
+    comment = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 def allowed_file(filename):
     """Fayl kengaytmasini tekshirish"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -292,6 +305,44 @@ def get_contact(user_id):
     if contact:
         return jsonify({'status': 'ok'})
     return jsonify({'error': 'Not found'}), 404
+
+# --- API: barcha yangiliklar ---
+@app.route('/api/news', methods=['GET'])
+def get_news():
+    news = News.query.order_by(News.created_at.desc()).limit(5).all()
+    return jsonify([
+        {'id': n.id, 'title': n.title, 'content': n.content, 'created_at': n.created_at.strftime('%Y-%m-%d')} for n in news
+    ])
+
+# --- API: barcha feedbacklar va yangi sharh qabul qilish ---
+@app.route('/api/feedback', methods=['GET', 'POST'])
+def feedback():
+    if request.method == 'POST':
+        data = request.json
+        user_id = data.get('user_id')
+        topic_id = data.get('topic_id')
+        comment = data.get('comment')
+        if not all([user_id, topic_id, comment]):
+            return jsonify({'error': 'Majburiy maydonlar toldirilmagan'}), 400
+        fb = Feedback(user_id=user_id, topic_id=topic_id, comment=comment)
+        db.session.add(fb)
+        db.session.commit()
+        return jsonify({'status': 'ok'})
+    else:
+        # So'nggi 5 sharh, user ismi va topic title bilan
+        feedbacks = Feedback.query.order_by(Feedback.created_at.desc()).limit(5).all()
+        result = []
+        for f in feedbacks:
+            user = Contact.query.filter_by(user_id=f.user_id).first()
+            topic = Topic.query.filter_by(id=f.topic_id).first()
+            result.append({
+                'id': f.id,
+                'user': user.first_name if user else 'Foydalanuvchi',
+                'topic': topic.title if topic else 'Mavzu',
+                'comment': f.comment,
+                'created_at': f.created_at.strftime('%Y-%m-%d')
+            })
+        return jsonify(result)
 
 # --- App ishga tushishi ---
 with app.app_context():

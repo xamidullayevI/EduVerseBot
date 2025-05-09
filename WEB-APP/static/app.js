@@ -113,6 +113,13 @@ function formatTopicContent(topic) {
                     </div>
                 </div>
             </div>
+            <form class="feedback-form mt-4 p-3 bg-light rounded-4" data-topic-id="${topic.id}">
+                <label class="mb-2 fw-bold" for="feedback-text">Sharhingiz:</label>
+                <textarea class="form-control mb-2" id="feedback-text" rows="2" required placeholder="Fikringizni yozing..."></textarea>
+                <button type="submit" class="btn btn-primary">Yuborish</button>
+                <div class="feedback-success text-success mt-2" style="display:none;">Sharhingiz yuborildi!</div>
+                <div class="feedback-error text-danger mt-2" style="display:none;"></div>
+            </form>
         </div>
     `;
 }
@@ -293,4 +300,84 @@ function updateOverlayTop() {
     overlay.style.top = navbar.offsetHeight + 'px';
 }
 window.addEventListener('resize', updateOverlayTop);
-updateOverlayTop(); 
+updateOverlayTop();
+
+// Real-time stats, news, feedback rendering for welcome section
+function loadWelcomeStats() {
+    // Statistika
+    fetch('/api/stats').then(r=>r.json()).then(data => {
+        if (data.users_count !== undefined) {
+            document.getElementById('stats-users').textContent = data.users_count;
+        }
+    });
+    fetch('/api/topics').then(r=>r.json()).then(data => {
+        document.getElementById('stats-topics').textContent = data.length;
+    });
+    // Yangiliklar
+    fetch('/api/news').then(r=>r.json()).then(news => {
+        const newsList = document.querySelector('.welcome ul.list-unstyled');
+        if(newsList && news.length) {
+            newsList.innerHTML = news.map(n => `<li><b>${n.created_at}:</b> ${n.title}</li>`).join('');
+        }
+    });
+    // Foydalanuvchi sharhlari
+    fetch('/api/feedback').then(r=>r.json()).then(feedbacks => {
+        const fbBox = document.querySelector('.welcome .bg-white.rounded-4.shadow-sm.p-4');
+        if(fbBox && feedbacks.length) {
+            fbBox.innerHTML = `<div class='fw-bold mb-2' style='color:#2481cc;'>💬 Foydalanuvchi sharhlari</div>` +
+                feedbacks.map(f => `<div class='small text-muted mb-2'>"${f.comment}" <span class='text-secondary'>- ${f.user}</span></div>`).join('');
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', loadWelcomeStats);
+
+// Feedback form submit handler
+document.addEventListener('submit', async function(e) {
+    if (e.target.classList.contains('feedback-form')) {
+        e.preventDefault();
+        const form = e.target;
+        const topicId = form.getAttribute('data-topic-id');
+        const textarea = form.querySelector('textarea');
+        const comment = textarea.value.trim();
+        const successMsg = form.querySelector('.feedback-success');
+        const errorMsg = form.querySelector('.feedback-error');
+        successMsg.style.display = 'none';
+        errorMsg.style.display = 'none';
+        if (!comment) {
+            errorMsg.textContent = 'Sharh bo‘sh bo‘lishi mumkin emas!';
+            errorMsg.style.display = 'block';
+            return;
+        }
+        // Telegram user_id ni olish
+        let userId = null;
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+            userId = window.Telegram.WebApp.initDataUnsafe.user.id;
+        }
+        if (!userId) {
+            errorMsg.textContent = 'Foydalanuvchi aniqlanmadi. Telegram WebApp orqali kiring.';
+            errorMsg.style.display = 'block';
+            return;
+        }
+        // Yuborish
+        try {
+            const res = await fetch('/api/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId, topic_id: topicId, comment })
+            });
+            const data = await res.json();
+            if (data.status === 'ok') {
+                successMsg.style.display = 'block';
+                textarea.value = '';
+                if (document.querySelector('.welcome')) loadWelcomeStats();
+            } else {
+                errorMsg.textContent = data.error || 'Xatolik yuz berdi.';
+                errorMsg.style.display = 'block';
+            }
+        } catch (err) {
+            errorMsg.textContent = 'Tarmoq xatoligi.';
+            errorMsg.style.display = 'block';
+        }
+    }
+}); 
