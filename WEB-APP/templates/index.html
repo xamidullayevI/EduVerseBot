@@ -37,7 +37,26 @@
                 {% if topic %}
                     <strong>Qoidalar:</strong> <div class="structure">{{ topic.structure }}</div>
                 {% else %}
-                    <div class="alert alert-info">Mavzu tanlanmagan.</div>
+                    <div class="welcome text-center py-5">
+                        <svg width="80" height="80" fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" style="margin-bottom:16px;"><circle cx="40" cy="40" r="38" stroke="#2481cc" stroke-width="4" fill="#f8f9fa"/><text x="50%" y="54%" text-anchor="middle" fill="#2481cc" font-size="32" font-family="Segoe UI, Arial, sans-serif" dy=".3em">EV</text></svg>
+                        <h2 class="mb-3" style="color:#2481cc;font-weight:700;">EduVerse'ga xush kelibsiz!</h2>
+                        <p class="lead mb-2">Ingliz tili grammatikasini zamonaviy va interaktiv tarzda o'rganing.</p>
+                        <p class="text-muted mb-4">Chapdan mavzu tanlang yoki qidiruvdan foydalaning.</p>
+                        <div class="d-flex justify-content-center gap-3 flex-wrap">
+                            <div class="p-3 bg-white rounded-4 shadow-sm text-start" style="min-width:220px;max-width:320px;">
+                                <div class="fw-bold mb-1" style="color:#2481cc;">🔍 Qidiruv</div>
+                                <div class="small text-muted">Mavzularni tez topish uchun qidiruvdan foydalaning.</div>
+                            </div>
+                            <div class="p-3 bg-white rounded-4 shadow-sm text-start" style="min-width:220px;max-width:320px;">
+                                <div class="fw-bold mb-1" style="color:#2481cc;">📚 Mavzular</div>
+                                <div class="small text-muted">Har bir mavzuda qoidalar, misollar, rasm va video mavjud.</div>
+                            </div>
+                            <div class="p-3 bg-white rounded-4 shadow-sm text-start" style="min-width:220px;max-width:320px;">
+                                <div class="fw-bold mb-1" style="color:#2481cc;">💡 Interaktiv</div>
+                                <div class="small text-muted">Web ilova va Telegram bot orqali o'rganing.</div>
+                            </div>
+                        </div>
+                    </div>
                 {% endif %}
             </main>
         </div>
