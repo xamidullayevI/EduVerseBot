@@ -15,8 +15,8 @@ async def start_bot(token: str):
 
     # Statistika tugmasi uchun handler
     application.add_handler(MessageHandler(filters.Regex("Statistika"), admin.stats_handler))
-    # Yangi mavzu tugmasi
-    application.add_handler(MessageHandler(filters.Regex("^➕ Yangi mavzu qo'shish$"), admin.new_topic_button))
+    # Yangi mavzu tugmasi (regex soddalashtirildi va log qo'shildi)
+    application.add_handler(MessageHandler(filters.Regex("Yangi mavzu qo'shish"), admin.new_topic_button))
     # Topic bosqichlari uchun text handler
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin.topic_text_step))
     # Topic uchun photo handler
@@ -24,9 +24,9 @@ async def start_bot(token: str):
     # Topic uchun video handler
     application.add_handler(MessageHandler(filters.VIDEO, admin.video_handler_topic))
     # Topic uchun skip tugmasi
-    application.add_handler(MessageHandler(filters.Regex("^⏭ O'tkazib yuborish$"), admin.skip_handler))
+    application.add_handler(MessageHandler(filters.Regex("O'tkazib yuborish"), admin.skip_handler))
     # Topic uchun saqlash tugmasi
-    application.add_handler(MessageHandler(filters.Regex("^✅ Saqlash$"), admin.save_topic_handler))
+    application.add_handler(MessageHandler(filters.Regex("Saqlash"), admin.save_topic_handler))
 
     # Foydalanuvchi uchun umumiy handlerlar
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin.video_handler))

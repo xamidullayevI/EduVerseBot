@@ -91,6 +91,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.")
 
 async def new_topic_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info("Yangi mavzu tugmasi bosildi")
+    print("Yangi mavzu tugmasi bosildi")
     if not is_admin(update.message.from_user.id):
         return
     context.user_data['topic'] = {}
