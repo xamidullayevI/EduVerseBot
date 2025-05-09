@@ -309,6 +309,7 @@ function updateWelcomeFeedbackAndStats() {
     loadWelcomeStats();
 }
 
+// Feedback form submit handler
 document.addEventListener('submit', async function(e) {
     if (e.target.classList.contains('feedback-form')) {
         e.preventDefault();
@@ -325,12 +326,10 @@ document.addEventListener('submit', async function(e) {
             errorMsg.style.display = 'block';
             return;
         }
-        // Telegram user_id yoki oddiy ism olish
+        // user_id olish (Telegram yoki oddiy ism)
         let userId = null;
-        let isTelegram = false;
         if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
             userId = window.Telegram.WebApp.initDataUnsafe.user.id;
-            isTelegram = true;
         } else {
             userId = localStorage.getItem('webapp_name');
             if (!userId) {
@@ -343,7 +342,6 @@ document.addEventListener('submit', async function(e) {
             errorMsg.style.display = 'block';
             return;
         }
-        // Yuborish
         try {
             const res = await fetch('/api/feedback', {
                 method: 'POST',
@@ -352,9 +350,10 @@ document.addEventListener('submit', async function(e) {
             });
             const data = await res.json();
             if (data.status === 'ok') {
-                successMsg.style.display = 'block';
                 textarea.value = '';
-                updateWelcomeFeedbackAndStats();
+                successMsg.style.display = 'block';
+                setTimeout(() => { successMsg.style.display = 'none'; }, 2500);
+                if (typeof updateWelcomeFeedbackAndStats === 'function') updateWelcomeFeedbackAndStats();
             } else {
                 errorMsg.textContent = data.error || 'Xatolik yuz berdi.';
                 errorMsg.style.display = 'block';
@@ -366,7 +365,35 @@ document.addEventListener('submit', async function(e) {
     }
 });
 
-// Ensure stats and feedback update on welcome and every 30s
+function renderFeedbackBox(feedbacks) {
+    if (!feedbacks.length) return "<div class='text-muted'>Sharhlar hali yo‘q.</div>";
+    let html = `<div class='fw-bold mb-2' style='color:#2481cc;'>💬 Foydalanuvchi sharhlari</div>`;
+    const showCount = 3;
+    const visible = feedbacks.slice(0, showCount);
+    const hidden = feedbacks.slice(showCount);
+
+    html += visible.map(f =>
+        `<div class='feedback-item small text-muted mb-2'>
+            <span class='d-block' style='font-size:1.05em;'>&ldquo;${f.comment}&rdquo;</span>
+            <span class='text-secondary' style='font-size:0.95em;'>- ${f.user} <span style='color:#bbb;'>(${f.topic})</span></span>
+        </div>`
+    ).join('');
+
+    if (hidden.length) {
+        html += `<div class='feedback-hidden' style='display:none;'>` +
+            hidden.map(f =>
+                `<div class='feedback-item small text-muted mb-2'>
+                    <span class='d-block' style='font-size:1.05em;'>&ldquo;${f.comment}&rdquo;</span>
+                    <span class='text-secondary' style='font-size:0.95em;'>- ${f.user} <span style='color:#bbb;'>(${f.topic})</span></span>
+                </div>`
+            ).join('') +
+            `</div>
+            <button class='btn btn-link p-0 feedback-toggle' style='font-size:0.98em;'>Barcha sharhlarni ko‘rish</button>`;
+    }
+    return html;
+}
+
+// Welcome statsni yangilashda:
 function loadWelcomeStats() {
     // Statistika
     fetch('/api/stats').then(r=>r.json()).then(data => {
@@ -389,9 +416,22 @@ function loadWelcomeStats() {
     // Foydalanuvchi sharhlari
     fetch('/api/feedback').then(r=>r.json()).then(feedbacks => {
         const fbBox = document.querySelector('.welcome .bg-white.rounded-4.shadow-sm.p-4');
-        if(fbBox && feedbacks.length) {
-            fbBox.innerHTML = `<div class='fw-bold mb-2' style='color:#2481cc;'>💬 Foydalanuvchi sharhlari</div>` +
-                feedbacks.map(f => `<div class='small text-muted mb-2'>"${f.comment}" <span class='text-secondary'>- ${f.user} (${f.topic})</span></div>`).join('');
+        if(fbBox) {
+            fbBox.innerHTML = renderFeedbackBox(feedbacks);
+            // Toggle uchun event
+            const toggle = fbBox.querySelector('.feedback-toggle');
+            if (toggle) {
+                toggle.onclick = function() {
+                    const hidden = fbBox.querySelector('.feedback-hidden');
+                    if (hidden.style.display === 'none') {
+                        hidden.style.display = 'block';
+                        toggle.textContent = 'Yopish';
+                    } else {
+                        hidden.style.display = 'none';
+                        toggle.textContent = 'Barcha sharhlarni ko‘rish';
+                    }
+                };
+            }
         }
     });
 }
