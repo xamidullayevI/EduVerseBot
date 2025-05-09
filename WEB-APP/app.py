@@ -2,7 +2,7 @@ from flask import Flask, jsonify, render_template, request, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import os
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy_utils import database_exists, create_database
 from dotenv import load_dotenv
 import pymysql
@@ -105,7 +105,7 @@ def save_contact():
 
         try:
             # Baza ulanishini tekshirish
-            db.session.execute('SELECT 1')
+            db.session.execute(text('SELECT 1'))
             logger.info("Baza ulanishi muvaffaqiyatli")
 
             contact = Contact.query.filter_by(user_id=user_id).first()
