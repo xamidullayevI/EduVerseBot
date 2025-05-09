@@ -23,6 +23,8 @@ Thumbs.db
 
 # Log files
 *.log
+bot.log
+webapp.log
 
-# Static/media uploads (agar kerak bo'lsa, o'zgartiring)
+# Static/media uploads
 WEB-APP/static/uploads/ 

@@ -13,10 +13,15 @@ eduverse/
 │   └── run.py             # Bot ishga tushirish
 ├── WEB-APP/               # Web ilova kodi
 │   ├── static/            # Statik fayllar
+│   │   └── uploads/       # Yuklangan fayllar
 │   ├── templates/         # HTML shablonlar
 │   ├── .env              # Web ilova sozlamalari
 │   └── app.py            # Flask ilovasi
-└── requirements.txt       # Kerakli kutubxonalar
+├── .env                  # Asosiy sozlamalar
+├── .gitignore           # Git ignore fayllar
+├── Procfile             # Heroku sozlamalari
+├── requirements.txt     # Kerakli kutubxonalar
+└── main.py             # Asosiy ishga tushirish fayli
 ```
 
 ## O'rnatish va sozlash
@@ -24,8 +29,9 @@ eduverse/
 ### 1. Kerakli dasturlar
 
 - Python 3.8 yoki undan yuqori versiya
-- MySQL server
+- MySQL server 8.0 yoki undan yuqori versiya
 - Git
+- pip (Python paket menejeri)
 
 ### 2. Loyihani yuklab olish
 
@@ -37,51 +43,87 @@ cd eduverse
 ### 3. Virtual muhit yaratish va kutubxonalarni o'rnatish
 
 ```bash
+# Virtual muhit yaratish
 python -m venv venv
-source venv/bin/activate  # Linux/Mac uchun
-venv\Scripts\activate     # Windows uchun
 
+# Virtual muhitni faollashtirish
+# Windows uchun:
+venv\Scripts\activate
+# Linux/Mac uchun:
+source venv/bin/activate
+
+# Kerakli kutubxonalarni o'rnatish
 pip install -r requirements.txt
 ```
 
 ### 4. Ma'lumotlar bazasini sozlash
 
 1. MySQL da yangi bazani yarating:
+
 ```sql
 CREATE DATABASE eduverse CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
 2. `.env` fayllarini sozlang:
-   - `BOT/.env` va `WEB-APP/.env` fayllarida `DATABASE_URL` ni o'zgartiring
-   - `BOT_TOKEN` ni [@BotFather](https://t.me/BotFather) dan oling
-   - `ADMINS` ga o'zingizning Telegram ID raqamingizni kiriting
+   - Asosiy papkadagi `.env` faylini nusxa ko'chiring:
+     ```bash
+     cp .env BOT/.env
+     cp .env WEB-APP/.env
+     ```
+   - Har bir `.env` faylida quyidagi o'zgaruvchilarni sozlang:
+     ```
+     # Bot sozlamalari
+     BOT_TOKEN=your_bot_token_here
+     ADMINS=your_telegram_id
+
+     # Web App sozlamalari
+     DATABASE_URL=mysql://username:password@localhost:3306/eduverse
+
+     # Umumiy sozlamalar
+     API_URL=http://localhost:5000
+     WEBAPP_URL=http://localhost:5000
+     ```
 
 ### 5. Web ilovani sozlash
 
-1. Web ilovani joylashtirish uchun:
+1. Web ilovani joylashtirish uchun quyidagi hosting xizmatlaridan birini tanlang:
+
    - [Heroku](https://heroku.com)
    - [PythonAnywhere](https://www.pythonanywhere.com)
-   - yoki boshqa hosting xizmatidan foydalaning
-
+   - [Railway](https://railway.app)
+   - [Render](https://render.com)
 2. Web ilova URL manzilini `.env` fayllarida `WEBAPP_URL` ga kiriting
 
 ### 6. Botni ishga tushirish
 
 ```bash
+# Barcha komponentlarni bir vaqtda ishga tushirish
 python main.py
+
+# Yoki alohida ishga tushirish
+# Bot uchun:
+python BOT/run.py
+
+# Web ilova uchun:
+python WEB-APP/app.py
 ```
 
 ## Bot buyruqlari
 
 ### Admin uchun:
+
 - `/start` - Admin panelni ochish
 - `/new` - Yangi mavzu kiritish
 - `/confirm` - Mavzuni saqlash
 - `/skip` - Rasm yoki videoni o'tkazib yuborish
+- `/list` - Mavzular ro'yxatini ko'rish
+- `/delete` - Mavzuni o'chirish
 
 ### Foydalanuvchi uchun:
+
 - `/start` - Botni ishga tushirish va contact ma'lumotlarini yuborish
 - Web App tugmasi - Mavzularni ko'rish
+- `/help` - Yordam olish
 
 ## Web ilova funksiyalari
 
@@ -92,19 +134,40 @@ python main.py
   - Rasm
   - Video
 - Mobil qurilmalarga moslashgan dizayn
+- Admin paneli
+- Fayl yuklash imkoniyati
+- Ma'lumotlar bazasi boshqaruvi
 
 ## Xavfsizlik
 
 - Bot faqat admin ID dan kelgan so'rovlarni qabul qiladi
 - Web ilova HTTPS orqali ishlaydi
 - Foydalanuvchi ma'lumotlari xavfsiz saqlanadi
+- Fayl yuklash cheklovlari mavjud
+- SQL injection himoyasi
+- XSS himoyasi
+- CSRF himoyasi
 
 ## Yordam
 
 Agar muammolar yuzaga kelsa:
+
 1. [Issues](https://github.com/your-username/eduverse/issues) bo'limida xabar bering
-2. Telegram orqali bog'laning: [@your_username](https://t.me/your_username)
+2. Telegram orqali bog'laning: [@](https://t.me/your_username)xamidullayev_i
+3. Email orqali: ihamidullayev01@gmail.com
 
 ## Litsenziya
 
-MIT License - [LICENSE](LICENSE) faylida batafsil ma'lumot 
+MIT License - [LICENSE](LICENSE) faylida batafsil ma'lumot
+
+## Mualliflar
+
+- Ism Familiya - [GitHub](https://github.com/your-username)
+- Ism Familiya - [GitHub](https://github.com/your-username)
+
+## Minnatdorchilik
+
+- [Python Telegram Bot](https://github.com/python-telegram-bot/python-telegram-bot)
+- [Flask](https://github.com/pallets/flask)
+- [SQLAlchemy](https://github.com/sqlalchemy/sqlalchemy)
+- [Bootstrap](https://getbootstrap.com)

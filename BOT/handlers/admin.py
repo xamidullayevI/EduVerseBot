@@ -244,6 +244,10 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Contact ma'lumotlarini qabul qilish"""
     try:
         contact = update.message.contact
+        if not contact:
+            await update.message.reply_text("Contact ma'lumotlari topilmadi. Iltimos, qaytadan urinib ko'ring.")
+            return
+
         data = {
             'user_id': update.effective_user.id,
             'first_name': contact.first_name,
@@ -251,8 +255,13 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'phone_number': contact.phone_number
         }
         
+        logger.info(f"Contact ma'lumotlari yuborilmoqda: {data}")
+        
         async with aiohttp.ClientSession() as session:
             async with session.post(f"{API_URL}/api/contacts", json=data) as resp:
+                response_text = await resp.text()
+                logger.info(f"Server javobi: {response_text}")
+                
                 if resp.status == 200:
                     keyboard = [[KeyboardButton("🌐 Web App", web_app=WebAppInfo(url=WEBAPP_URL))]]
                     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
@@ -262,15 +271,21 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         reply_markup=reply_markup
                     )
                 else:
-                    error_text = await resp.text()
-                    logger.error(f"Contact saqlash xatolik: {error_text}")
+                    logger.error(f"Contact saqlash xatolik: Status={resp.status}, Response={response_text}")
                     await update.message.reply_text(
-                        "Contact saqlashda xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.\n"
+                        f"Contact saqlashda xatolik yuz berdi (Status: {resp.status}).\n"
+                        "Iltimos, qaytadan urinib ko'ring.\n"
                         "Agar muammo davom etsa, administrator bilan bog'laning."
                     )
+    except aiohttp.ClientError as e:
+        logger.error(f"API ulanish xatolik: {e}")
+        await update.message.reply_text(
+            "Server bilan bog'lanishda xatolik yuz berdi. Iltimos, keyinroq qaytadan urinib ko'ring.\n"
+            "Agar muammo davom etsa, administrator bilan bog'laning."
+        )
     except Exception as e:
         logger.error(f"Contact handler xatolik: {e}")
         await update.message.reply_text(
-            "Server bilan bog'lanishda xatolik yuz berdi. Iltimos, keyinroq qaytadan urinib ko'ring.\n"
+            "Kutilmagan xatolik yuz berdi. Iltimos, keyinroq qaytadan urinib ko'ring.\n"
             "Agar muammo davom etsa, administrator bilan bog'laning."
         ) 

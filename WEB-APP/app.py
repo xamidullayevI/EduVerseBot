@@ -83,6 +83,7 @@ def save_contact():
     try:
         data = request.json
         if not data:
+            logger.error("Contact saqlash: Ma'lumotlar yo'q")
             return jsonify({'error': 'Ma\'lumotlar yo\'q'}), 400
 
         user_id = data.get('user_id')
@@ -90,30 +91,45 @@ def save_contact():
         last_name = data.get('last_name')
         phone_number = data.get('phone_number')
 
+        logger.info(f"Contact saqlash so'rovi: user_id={user_id}, first_name={first_name}, phone={phone_number}")
+
         if not all([user_id, first_name, phone_number]):
-            return jsonify({'error': 'Majburiy maydonlar to\'ldirilmagan'}), 400
+            missing_fields = []
+            if not user_id: missing_fields.append('user_id')
+            if not first_name: missing_fields.append('first_name')
+            if not phone_number: missing_fields.append('phone_number')
+            
+            error_msg = f"Majburiy maydonlar to'ldirilmagan: {', '.join(missing_fields)}"
+            logger.error(f"Contact saqlash: {error_msg}")
+            return jsonify({'error': error_msg}), 400
 
-        contact = Contact.query.filter_by(user_id=user_id).first()
-        if not contact:
-            contact = Contact(
-                user_id=user_id,
-                first_name=first_name,
-                last_name=last_name,
-                phone_number=phone_number
-            )
-            db.session.add(contact)
-        else:
-            contact.first_name = first_name
-            contact.last_name = last_name
-            contact.phone_number = phone_number
+        try:
+            contact = Contact.query.filter_by(user_id=user_id).first()
+            if not contact:
+                contact = Contact(
+                    user_id=user_id,
+                    first_name=first_name,
+                    last_name=last_name,
+                    phone_number=phone_number
+                )
+                db.session.add(contact)
+                logger.info(f"Yangi contact qo'shildi: {user_id}")
+            else:
+                contact.first_name = first_name
+                contact.last_name = last_name
+                contact.phone_number = phone_number
+                logger.info(f"Contact yangilandi: {user_id}")
 
-        db.session.commit()
-        logger.info(f"Contact saqlandi: {user_id}")
-        return jsonify({'status': 'ok'})
+            db.session.commit()
+            return jsonify({'status': 'ok'})
+
+        except Exception as db_error:
+            logger.error(f"Baza xatolik: {db_error}")
+            db.session.rollback()
+            return jsonify({'error': 'Ma\'lumotlar bazasi xatolik'}), 500
 
     except Exception as e:
         logger.error(f"Contact saqlash xatolik: {e}")
-        db.session.rollback()
         return jsonify({'error': 'Server xatolik'}), 500
 
 # --- API: barcha topics ---
