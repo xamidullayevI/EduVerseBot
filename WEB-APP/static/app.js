@@ -81,18 +81,51 @@ async function showTopic(id, li) {
     const res = await fetch(`/api/topics/${id}`);
     const topic = await res.json();
     const main = document.getElementById('main-content');
-    main.innerHTML = `
+    main.innerHTML = formatTopicContent(topic);
+}
+
+function formatTopicContent(topic) {
+    return `
         <div class="topic-card">
-            <div class="topic-title">${topic.title}</div>
-            <div class="topic-structure"><b>Strukturasi:</b> ${topic.structure}</div>
-            <div class="topic-examples"><b>Misollar:</b> ${renderExamples(topic.examples)}</div>
-            <div class="topic-media">
-                ${topic.image_url ? `<img src="${topic.image_url}" alt="Rasm">` : ''}
-                ${topic.video_url ? renderVideo(topic.video_url) : ''}
+            <h2 class="topic-title">${topic.title}</h2>
+            <div class="topic-structure">
+                <strong>Strukturasi:</strong>
+                <div class="structure">${topic.structure}</div>
+            </div>
+            <div class="topic-examples">
+                <div class="examples-accordion">
+                    <div class="examples-header collapsed">
+                        Misollar
+                    </div>
+                    <div class="examples-content">
+                        ${topic.examples}
+                    </div>
+                </div>
             </div>
         </div>
     `;
 }
+
+// Accordion funksionalligi
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('examples-header')) {
+        const header = e.target;
+        const content = header.nextElementSibling;
+        const isCollapsed = header.classList.contains('collapsed');
+        
+        // Barcha accordionlarni yopish
+        document.querySelectorAll('.examples-header').forEach(h => {
+            h.classList.add('collapsed');
+            h.nextElementSibling.classList.remove('show');
+        });
+        
+        // Agar bosilgan accordion yopiq bo'lsa, uni ochish
+        if (isCollapsed) {
+            header.classList.remove('collapsed');
+            content.classList.add('show');
+        }
+    }
+});
 
 function renderVideo(url) {
     if (url.includes('youtube.com') || url.includes('youtu.be')) {

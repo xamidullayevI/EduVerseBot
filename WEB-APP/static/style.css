@@ -174,8 +174,8 @@ img, video {
     background: #fff;
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    padding: 24px;
-    margin-bottom: 24px;
+    padding: 16px;
+    margin: 0 8px 24px 8px;
     color: #222;
 }
 .topic-card:hover {
@@ -193,15 +193,16 @@ img, video {
 .topic-media {
     margin: 16px 0;
     text-align: center;
+    width: 100%;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
 }
 .topic-media img, .topic-media video, .topic-media iframe {
     display: block;
-    margin: 0 auto 12px auto;
-    max-width: 100%;
-    max-height: 240px;
-    width: auto;
-    height: auto;
-    object-fit: contain;
+    width: 100%;
+    height: 300px;
+    object-fit: cover;
     border-radius: 10px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     background: #000;
@@ -246,4 +247,70 @@ img, video {
 
 .structure, .examples {
     white-space: pre-line;
+}
+
+.topic-examples {
+    margin-bottom: 10px;
+}
+
+.examples-accordion {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 10px 0;
+}
+
+.examples-header {
+    background: #f8f9fa;
+    padding: 12px 16px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 500;
+    color: #2481cc;
+    transition: background-color 0.2s;
+}
+
+.examples-header:hover {
+    background: #e9ecef;
+}
+
+.examples-header::after {
+    content: '▼';
+    font-size: 12px;
+    transition: transform 0.3s;
+}
+
+.examples-header.collapsed::after {
+    transform: rotate(-90deg);
+}
+
+.examples-content {
+    padding: 16px;
+    background: white;
+    display: none;
+}
+
+.examples-content.show {
+    display: block;
+}
+
+@media (max-width: 768px) {
+    .topic-card {
+        padding: 12px;
+        margin: 0 4px 16px 4px;
+    }
+    .topic-media {
+        max-width: 100%;
+    }
+    .topic-media img, .topic-media video, .topic-media iframe {
+        height: 200px;
+    }
+    .examples-header {
+        padding: 10px 12px;
+    }
+    .examples-content {
+        padding: 12px;
+    }
 } 
