@@ -359,13 +359,21 @@ document.addEventListener('submit', async function(e) {
             errorMsg.style.display = 'block';
             return;
         }
-        // Telegram user_id ni olish
+        // Telegram user_id yoki oddiy ism olish
         let userId = null;
+        let isTelegram = false;
         if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
             userId = window.Telegram.WebApp.initDataUnsafe.user.id;
+            isTelegram = true;
+        } else {
+            userId = localStorage.getItem('webapp_name');
+            if (!userId) {
+                userId = prompt('Ismingizni kiriting (faqat bir marta so‘raladi):');
+                if (userId) localStorage.setItem('webapp_name', userId);
+            }
         }
         if (!userId) {
-            errorMsg.textContent = 'Foydalanuvchi aniqlanmadi. Telegram WebApp orqali kiring.';
+            errorMsg.textContent = 'Ismingiz kiritilmadi.';
             errorMsg.style.display = 'block';
             return;
         }
