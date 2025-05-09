@@ -100,67 +100,152 @@ async def new_topic_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await ask_next_topic_step(update, context)
 
 async def ask_next_topic_step(update, context):
-    step_idx = context.user_data.get('topic_step', 0)
-    if step_idx >= len(TOPIC_STEPS):
-        await update.message.reply_text(
-            "Barcha ma'lumotlar qabul qilindi. Saqlash uchun tugmani bosing:",
-            reply_markup=ReplyKeyboardMarkup([[KeyboardButton(SAVE_BTN)], [KeyboardButton(CANCEL_BTN)]], resize_keyboard=True)
-        )
-        return
-    step = TOPIC_STEPS[step_idx]
-    if step == 'title':
-        await update.message.reply_text("Mavzu nomini kiriting:", reply_markup=ReplyKeyboardMarkup([[KeyboardButton(CANCEL_BTN)]], resize_keyboard=True))
-    elif step == 'structure':
-        await update.message.reply_text("Mavzu tuzilmasini kiriting:", reply_markup=ReplyKeyboardMarkup([[KeyboardButton(CANCEL_BTN)]], resize_keyboard=True))
-    elif step == 'examples':
-        await update.message.reply_text("Misollarni kiriting:", reply_markup=ReplyKeyboardMarkup([[KeyboardButton(CANCEL_BTN)]], resize_keyboard=True))
-    elif step == 'image':
-        await update.message.reply_text(
-            "Rasm yuboring yoki o'tkazib yuborish uchun tugmani bosing:",
-            reply_markup=ReplyKeyboardMarkup([[KeyboardButton(SKIP_BTN)], [KeyboardButton(CANCEL_BTN)]], resize_keyboard=True)
-        )
-    elif step == 'video':
-        await update.message.reply_text(
-            "Video yuboring yoki o'tkazib yuborish uchun tugmani bosing:",
-            reply_markup=ReplyKeyboardMarkup([[KeyboardButton(SKIP_BTN)], [KeyboardButton(CANCEL_BTN)]], resize_keyboard=True)
-        )
+    try:
+        step_idx = context.user_data.get('topic_step', 0)
+        if step_idx >= len(TOPIC_STEPS):
+            # Barcha bosqichlar tugaganda
+            keyboard = [
+                [KeyboardButton(SAVE_BTN)],
+                [KeyboardButton(CANCEL_BTN)]
+            ]
+            reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
+            await update.message.reply_text(
+                "Barcha ma'lumotlar qabul qilindi. Saqlash uchun tugmani bosing:",
+                reply_markup=reply_markup
+            )
+            return
 
-async def topic_text_step(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update.message.from_user.id):
-        return
-    if 'topic_step' not in context.user_data:
-        return
-    step_idx = context.user_data['topic_step']
-    if step_idx >= len(TOPIC_STEPS):
-        return
-    step = TOPIC_STEPS[step_idx]
-    text = update.message.text
-    if text == CANCEL_BTN:
-        context.user_data.pop('topic', None)
-        context.user_data.pop('topic_step', None)
-        # Show main admin menu after cancel
+        step = TOPIC_STEPS[step_idx]
+        logger.info(f"Keyingi bosqich: {step}")
+
+        # Har bir bosqich uchun tegishli keyboard
+        if step in ['title', 'structure', 'examples']:
+            # Matn kiritish uchun
+            keyboard = [[KeyboardButton(CANCEL_BTN)]]
+            message = {
+                'title': "Mavzu nomini kiriting:",
+                'structure': "Mavzu tuzilmasini kiriting:",
+                'examples': "Misollarni kiriting:"
+            }[step]
+        elif step == 'image':
+            # Rasm yuklash uchun
+            keyboard = [
+                [KeyboardButton(SKIP_BTN)],
+                [KeyboardButton(CANCEL_BTN)]
+            ]
+            message = "Rasm yuboring yoki o'tkazib yuborish uchun tugmani bosing:"
+        elif step == 'video':
+            # Video yuklash uchun
+            keyboard = [
+                [KeyboardButton(SKIP_BTN)],
+                [KeyboardButton(CANCEL_BTN)]
+            ]
+            message = "Video yuboring yoki o'tkazib yuborish uchun tugmani bosing:"
+
+        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+        await update.message.reply_text(message, reply_markup=reply_markup)
+
+    except Exception as e:
+        logger.error(f"ask_next_topic_step xatolik: {e}")
+        # Xatolik yuz berganda asosiy menyuga qaytish
         keyboard = [
             [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
             [KeyboardButton("📊 Statistika")],
             [KeyboardButton(NEW_TOPIC_BTN)]
         ]
         reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
-        await update.message.reply_text("Mavzu yaratish bekor qilindi.", reply_markup=reply_markup)
-        return
-    if step in ['title', 'structure', 'examples']:
-        context.user_data['topic'][step] = text
-        context.user_data['topic_step'] += 1
-        await ask_next_topic_step(update, context)
-    elif step == 'image':
         await update.message.reply_text(
-            "Rasm yuboring yoki o'tkazib yuborish uchun tugmani bosing:",
-            reply_markup=ReplyKeyboardMarkup([[KeyboardButton(SKIP_BTN)], [KeyboardButton(CANCEL_BTN)]], resize_keyboard=True)
+            "Xatolik yuz berdi. Asosiy menyuga qaytdingiz.",
+            reply_markup=reply_markup
         )
-    elif step == 'video':
+        context.user_data.pop('topic', None)
+        context.user_data.pop('topic_step', None)
+
+async def topic_text_step(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        if not is_admin(update.message.from_user.id):
+            return
+
+        if 'topic_step' not in context.user_data:
+            return
+
+        step_idx = context.user_data['topic_step']
+        if step_idx >= len(TOPIC_STEPS):
+            return
+
+        step = TOPIC_STEPS[step_idx]
+        text = update.message.text
+
+        # Cancel tugmasi bosilganda
+        if text == CANCEL_BTN:
+            context.user_data.pop('topic', None)
+            context.user_data.pop('topic_step', None)
+            keyboard = [
+                [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
+                [KeyboardButton("📊 Statistika")],
+                [KeyboardButton(NEW_TOPIC_BTN)]
+            ]
+            reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
+            await update.message.reply_text("Mavzu yaratish bekor qilindi.", reply_markup=reply_markup)
+            return
+
+        # Skip tugmasi bosilganda
+        if text == SKIP_BTN:
+            if step == 'image':
+                context.user_data['topic']['image_url'] = None
+            elif step == 'video':
+                context.user_data['topic']['video_url'] = None
+            context.user_data['topic_step'] += 1
+            await ask_next_topic_step(update, context)
+            return
+
+        # Save tugmasi bosilganda
+        if text == SAVE_BTN and step_idx == len(TOPIC_STEPS):
+            await save_topic_handler(update, context)
+            return
+
+        # Matn kiritilganda
+        if step in ['title', 'structure', 'examples']:
+            if not validate_text(text):
+                await update.message.reply_text(
+                    "Matn noto'g'ri formatda. Iltimos, qaytadan kiriting:",
+                    reply_markup=ReplyKeyboardMarkup([[KeyboardButton(CANCEL_BTN)]], resize_keyboard=True)
+                )
+                return
+
+            context.user_data['topic'][step] = text
+            context.user_data['topic_step'] += 1
+            await ask_next_topic_step(update, context)
+            return
+
+        # Video havolasi kiritilganda
+        if step == 'video' and text:
+            if validate_youtube_url(text) or validate_url(text):
+                context.user_data['topic']['video_url'] = text
+                context.user_data['topic_step'] += 1
+                await ask_next_topic_step(update, context)
+            else:
+                await update.message.reply_text(
+                    "Noto'g'ri video havolasi. Iltimos, to'g'ri havola kiriting yoki o'tkazib yuborish tugmasini bosing:",
+                    reply_markup=ReplyKeyboardMarkup([[KeyboardButton(SKIP_BTN)], [KeyboardButton(CANCEL_BTN)]], resize_keyboard=True)
+                )
+            return
+
+    except Exception as e:
+        logger.error(f"topic_text_step xatolik: {e}")
+        # Xatolik yuz berganda asosiy menyuga qaytish
+        keyboard = [
+            [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
+            [KeyboardButton("📊 Statistika")],
+            [KeyboardButton(NEW_TOPIC_BTN)]
+        ]
+        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
         await update.message.reply_text(
-            "Video yuboring yoki o'tkazib yuborish uchun tugmani bosing:",
-            reply_markup=ReplyKeyboardMarkup([[KeyboardButton(SKIP_BTN)], [KeyboardButton(CANCEL_BTN)]], resize_keyboard=True)
+            "Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.",
+            reply_markup=reply_markup
         )
+        context.user_data.pop('topic', None)
+        context.user_data.pop('topic_step', None)
 
 async def photo_handler_topic(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update.message.from_user.id):
@@ -176,21 +261,48 @@ async def photo_handler_topic(update: Update, context: ContextTypes.DEFAULT_TYPE
         await ask_next_topic_step(update, context)
 
 async def skip_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update.message.from_user.id):
-        return
-    if 'topic_step' not in context.user_data:
-        return
-    step_idx = context.user_data['topic_step']
-    if step_idx >= len(TOPIC_STEPS):
-        return
-    step = TOPIC_STEPS[step_idx]
-    if update.message.text == SKIP_BTN:
-        if step == 'image':
-            context.user_data['topic']['image_url'] = None
-        elif step == 'video':
-            context.user_data['topic']['video_url'] = None
-        context.user_data['topic_step'] += 1
-        await ask_next_topic_step(update, context)
+    try:
+        if not is_admin(update.message.from_user.id):
+            return
+
+        if 'topic_step' not in context.user_data:
+            return
+
+        step_idx = context.user_data['topic_step']
+        if step_idx >= len(TOPIC_STEPS):
+            return
+
+        step = TOPIC_STEPS[step_idx]
+        if update.message.text and update.message.text.strip() == SKIP_BTN:
+            logger.info(f"Skip tugmasi bosildi: {step} bosqichida")
+            
+            if step == 'image':
+                context.user_data['topic']['image_url'] = None
+                logger.info("Rasm o'tkazib yuborildi")
+            elif step == 'video':
+                context.user_data['topic']['video_url'] = None
+                logger.info("Video o'tkazib yuborildi")
+            
+            # Keyingi bosqichga o'tish
+            context.user_data['topic_step'] += 1
+            await ask_next_topic_step(update, context)
+            return
+
+    except Exception as e:
+        logger.error(f"skip_handler xatolik: {e}")
+        # Xatolik yuz berganda asosiy menyuga qaytish
+        keyboard = [
+            [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
+            [KeyboardButton("📊 Statistika")],
+            [KeyboardButton(NEW_TOPIC_BTN)]
+        ]
+        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
+        await update.message.reply_text(
+            "Xatolik yuz berdi. Asosiy menyuga qaytdingiz.",
+            reply_markup=reply_markup
+        )
+        context.user_data.pop('topic', None)
+        context.user_data.pop('topic_step', None)
 
 async def video_handler_topic(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update.message.from_user.id):

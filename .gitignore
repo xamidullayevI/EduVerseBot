@@ -9,8 +9,11 @@ venv/
 
 # Environment variables
 .env
+.env.*
 BOT/.env
+BOT/.env.*
 WEB-APP/.env
+WEB-APP/.env.*
 
 # IDE/editor files
 .vscode/
