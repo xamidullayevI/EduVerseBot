@@ -368,23 +368,56 @@ async def video_handler_topic(update: Update, context: ContextTypes.DEFAULT_TYPE
             )
 
 async def save_topic_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update.message.from_user.id):
-        return
-    if context.user_data.get('topic_step', 0) == len(TOPIC_STEPS) and update.message.text == SAVE_BTN:
-        topic = context.user_data.get('topic')
-        if not topic or 'title' not in topic or 'structure' not in topic or 'examples' not in topic:
-            await update.message.reply_text("Ma'lumotlar to'liq emas.")
+    try:
+        if not is_admin(update.message.from_user.id):
             return
-        async with aiohttp.ClientSession() as session:
-            async with session.post(f"{API_URL}/api/topics", json=topic) as resp:
-                if resp.status == 200:
-                    await update.message.reply_text("Mavzu saqlandi!", reply_markup=ReplyKeyboardRemove())
-                    context.user_data['topic'] = {}
-                    context.user_data['topic_step'] = None
-                else:
-                    error_text = await resp.text()
-                    logger.error(f"Topic saqlash xatolik: {error_text}")
-                    await update.message.reply_text("Mavzuni saqlashda xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.")
+
+        if context.user_data.get('topic_step', 0) == len(TOPIC_STEPS) and update.message.text == SAVE_BTN:
+            topic = context.user_data.get('topic')
+            if not topic or 'title' not in topic or 'structure' not in topic or 'examples' not in topic:
+                await update.message.reply_text("Ma'lumotlar to'liq emas.")
+                return
+
+            async with aiohttp.ClientSession() as session:
+                async with session.post(f"{API_URL}/api/topics", json=topic) as resp:
+                    if resp.status == 200:
+                        # Barcha ma'lumotlarni tozalash
+                        context.user_data.pop('topic', None)
+                        context.user_data.pop('topic_step', None)
+
+                        # Asosiy menyuga qaytish
+                        keyboard = [
+                            [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
+                            [KeyboardButton("📊 Statistika")],
+                            [KeyboardButton(NEW_TOPIC_BTN)]
+                        ]
+                        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
+                        await update.message.reply_text(
+                            "Mavzu saqlandi! Asosiy menyuga qaytdingiz.",
+                            reply_markup=reply_markup
+                        )
+                    else:
+                        error_text = await resp.text()
+                        logger.error(f"Topic saqlash xatolik: {error_text}")
+                        await update.message.reply_text(
+                            "Mavzuni saqlashda xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.",
+                            reply_markup=ReplyKeyboardMarkup([[KeyboardButton(CANCEL_BTN)]], resize_keyboard=True)
+                        )
+    except Exception as e:
+        logger.error(f"save_topic_handler xatolik: {e}")
+        # Xatolik yuz berganda asosiy menyuga qaytish
+        keyboard = [
+            [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
+            [KeyboardButton("📊 Statistika")],
+            [KeyboardButton(NEW_TOPIC_BTN)]
+        ]
+        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
+        await update.message.reply_text(
+            "Xatolik yuz berdi. Asosiy menyuga qaytdingiz.",
+            reply_markup=reply_markup
+        )
+        context.user_data.pop('topic', None)
+        context.user_data.pop('topic_step', None)
 
 async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Contact ma'lumotlarini qabul qilish"""
