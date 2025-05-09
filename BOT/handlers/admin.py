@@ -313,4 +313,16 @@ async def stats_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
     except Exception as e:
         logger.error(f"Statistika olishda xatolik: {e}")
-        await update.message.reply_text("Statistika olishda xatolik yuz berdi.") 
+        await update.message.reply_text("Statistika olishda xatolik yuz berdi.")
+
+async def video_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Foydalanuvchi uchun: topic yaratish jarayonida emas
+    if 'topic_step' in context.user_data:
+        return
+    await update.message.reply_text("Video yoki havola uchun bu botda faqat adminlar uchun maxsus bo'lim mavjud.")
+
+async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Foydalanuvchi uchun: topic yaratish jarayonida emas
+    if 'topic_step' in context.user_data:
+        return
+    await update.message.reply_text("Rasm yuborish adminlar uchun mo'ljallangan.") 
