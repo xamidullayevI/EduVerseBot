@@ -253,9 +253,25 @@ form.onsubmit = async e => {
     alert('Mavzu qo\'shildi!');
 };
 
-// Sidebar faol bo'lsa, faqat main-content yoki navbar ustiga bosilganda yopiladi
-document.getElementById('main-content').addEventListener('click', closeSidebarIfOpen);
-document.querySelector('.navbar').addEventListener('click', closeSidebarIfOpen);
+// Sidebar faol bo'lsa, faqat sidebar va hamburgerdan tashqariga bosilganda yopiladi
+document.removeEventListener('click', closeSidebarIfOpen);
+document.getElementById('main-content').removeEventListener('click', closeSidebarIfOpen);
+document.querySelector('.navbar').removeEventListener('click', closeSidebarIfOpen);
+
+document.addEventListener('click', function(e) {
+    if (
+        window.innerWidth < 992 &&
+        sidebar.classList.contains('open')
+    ) {
+        if (
+            !sidebar.contains(e.target) &&
+            !hamburger.contains(e.target)
+        ) {
+            sidebar.classList.remove('open');
+            document.body.classList.remove('menu-open');
+        }
+    }
+});
 
 function closeSidebarIfOpen(e) {
     if (
