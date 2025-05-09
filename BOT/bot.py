@@ -12,7 +12,6 @@ async def start_bot(token: str):
     application = Application.builder().token(token).build()
 
     application.add_handler(CommandHandler("start", admin.start))
-    application.add_handler(CommandHandler("new", admin.new_topic))
 
     # Statistika tugmasi uchun handler
     application.add_handler(MessageHandler(filters.Regex("Statistika"), admin.stats_handler))
