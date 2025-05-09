@@ -82,8 +82,8 @@ def generate_filename(filename):
 def format_sentences(text):
     if not text:
         return ""
-    # . ! ? : dan keyin yangi qator
-    sentences = re.split(r'(?<=[.!?:])\s+', text.strip())
+    # . ! ? : dan keyin yangi qator yoki bo'shliq bo'lsa ham bo'lib yuboradi
+    sentences = re.split(r'(?<=[.!?:])(?:\s*|\n+)', text.strip())
     formatted = []
     auto_num = 1
     for sentence in sentences:
@@ -94,8 +94,9 @@ def format_sentences(text):
         if sentence.endswith(':'):
             main = sentence[:-1].strip()
             out = f'<b>{main}</b>:'
+        # Agar allaqachon raqam bilan boshlansa, uni o'zgartirmaymiz va raqam qo'shmaymiz
         elif re.match(r'^\d+\.', sentence):
-            out = sentence  # allaqachon raqamli
+            out = sentence
         else:
             out = f'{auto_num}. {sentence}'
             auto_num += 1
