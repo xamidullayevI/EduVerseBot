@@ -358,6 +358,7 @@ def delete_news(news_id):
 def feedback():
     if request.method == 'POST':
         data = request.json
+        print('FEEDBACK POST DATA:', data)  # Debug print
         user_id = data.get('user_id')
         topic_id = data.get('topic_id')
         comment = data.get('comment')
@@ -369,15 +370,19 @@ def feedback():
             user_name = user_id
             user_id = None
         if not all([topic_id, comment]) or (not user_id and not user_name):
+            print('FEEDBACK ERROR: Majburiy maydonlar yo\'q')  # Debug print
             return jsonify({'error': 'Majburiy maydonlar toldirilmagan'}), 400
         try:
             fb = Feedback(user_id=user_id, user_name=user_name, topic_id=topic_id, comment=comment)
             db.session.add(fb)
             db.session.commit()
+            print('FEEDBACK SUCCESS')  # Debug print
             return jsonify({'status': 'ok'})
         except Exception as e:
             import traceback
             db.session.rollback()
+            print('FEEDBACK ERROR:', e)
+            print(traceback.format_exc())
             logger.error(f'FEEDBACK ERROR: {e}')
             logger.error(traceback.format_exc())
             return jsonify({'error': 'Sharh saqlanmadi', 'details': str(e)}), 500
