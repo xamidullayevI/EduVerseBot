@@ -33,7 +33,15 @@ function renderTopics(topics) {
         const li = document.createElement('li');
         li.className = 'list-group-item';
         li.textContent = topic.title;
-        li.onclick = () => showTopic(topic.id, li);
+        li.onclick = () => {
+            showTopic(topic.id, li);
+            // Mobilda sidebar avtomatik yopilsin
+            if (window.innerWidth < 992) {
+                sidebar.classList.remove('open');
+                document.body.classList.remove('menu-open');
+                if (overlay) overlay.style.display = 'none';
+            }
+        };
         list.appendChild(li);
     });
 }
@@ -89,6 +97,8 @@ async function showTopic(id, li) {
     const topic = await res.json();
     const main = document.getElementById('main-content');
     main.innerHTML = formatTopicContent(topic);
+    // Welcome stats yangilash
+    loadWelcomeStats();
 }
 
 function formatTopicContent(topic) {
@@ -380,4 +390,7 @@ document.addEventListener('submit', async function(e) {
             errorMsg.style.display = 'block';
         }
     }
-}); 
+});
+
+// Har 30 soniyada welcome stats yangilash (real-time uchun)
+setInterval(loadWelcomeStats, 30000); 
