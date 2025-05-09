@@ -183,9 +183,12 @@ tg.expand();
 loadTopics();
 
 // Webapp tugmasi (admin uchun doim ko'rinadi)
-document.getElementById('webapp-btn').onclick = () => {
-    window.open(window.location.href, '_blank');
-};
+const webappBtn = document.getElementById('webapp-btn');
+if (webappBtn) {
+    webappBtn.onclick = () => {
+        window.open(window.location.href, '_blank');
+    };
+}
 
 // Yangi mavzu formasi
 const form = document.getElementById('new-topic-form');
