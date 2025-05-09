@@ -322,10 +322,11 @@ function updateWelcomeFeedbackAndStats() {
     loadWelcomeStats();
 }
 
-// Feedback form submit handler
-document.addEventListener('submit', async function(e) {
+// Feedback form submit handler (delegated to body for robustness)
+document.body.addEventListener('submit', async function(e) {
     if (e.target.classList.contains('feedback-form')) {
         e.preventDefault();
+        console.log('Feedback form submit ishladi!');
         const form = e.target;
         const topicId = form.getAttribute('data-topic-id');
         const textarea = form.querySelector('textarea');
@@ -333,11 +334,18 @@ document.addEventListener('submit', async function(e) {
         const comment = textarea.value.trim();
         const successMsg = form.querySelector('.feedback-success');
         const errorMsg = form.querySelector('.feedback-error');
-        
+
         // Reset messages
         successMsg.style.display = 'none';
         errorMsg.style.display = 'none';
-        
+
+        // Yangi: topicId tekshirish
+        if (!topicId || isNaN(Number(topicId))) {
+            errorMsg.textContent = "Mavzu aniqlanmadi yoki noto'g'ri!";
+            errorMsg.style.display = 'block';
+            alert("Mavzu aniqlanmadi yoki noto'g'ri! Iltimos, sahifani yangilang.");
+            return;
+        }
         if (!comment) {
             errorMsg.textContent = "Sharh bo'sh bo'lishi mumkin emas!";
             errorMsg.style.display = 'block';
@@ -374,11 +382,12 @@ document.addEventListener('submit', async function(e) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: userId, topic_id: topicId, comment })
             });
-            
+
             if (!res.ok) {
-                throw new Error(`HTTP error! status: ${res.status}`);
+                const errText = await res.text();
+                throw new Error(`HTTP error! status: ${res.status}, body: ${errText}`);
             }
-            
+
             const data = await res.json();
             if (data.status === 'ok') {
                 textarea.value = '';
@@ -392,6 +401,7 @@ document.addEventListener('submit', async function(e) {
             console.error('Feedback submission error:', err);
             errorMsg.textContent = err.message || 'Tarmoq xatoligi.';
             errorMsg.style.display = 'block';
+            alert('Sharh yuborishda xatolik: ' + (err.message || 'Tarmoq xatoligi.'));
         } finally {
             // Reset button state
             submitBtn.disabled = false;
