@@ -98,6 +98,8 @@ async def new_topic_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await ask_next_topic_step(update, context)
 
 async def ask_next_topic_step(update, context):
+    if 'topic_step' in context.user_data:
+        return
     step_idx = context.user_data.get('topic_step', 0)
     if step_idx >= len(TOPIC_STEPS):
         await update.message.reply_text(
