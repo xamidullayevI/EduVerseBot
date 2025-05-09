@@ -260,11 +260,7 @@ form.onsubmit = async e => {
     alert('Mavzu qo\'shildi!');
 };
 
-// Sidebar faol bo'lsa, faqat sidebar va hamburgerdan tashqariga bosilganda yopiladi
-document.removeEventListener('click', closeSidebarIfOpen);
-document.getElementById('main-content').removeEventListener('click', closeSidebarIfOpen);
-document.querySelector('.navbar').removeEventListener('click', closeSidebarIfOpen);
-
+// Sidebar faqat overlay ustiga bosilganda yopiladi
 document.addEventListener('click', function(e) {
     if (
         window.innerWidth < 992 &&
