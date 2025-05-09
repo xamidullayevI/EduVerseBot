@@ -16,6 +16,9 @@ async def start_bot(token: str):
     application.add_handler(CommandHandler("confirm", admin.confirm_topic))
     application.add_handler(CommandHandler("skip", admin.skip))
 
+    # Statistika tugmasi uchun handler
+    application.add_handler(MessageHandler(filters.Regex("Statistika"), admin.stats_handler))
+
     # Avval video handlerlar
     application.add_handler(MessageHandler(filters.VIDEO, admin.video_handler))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin.video_handler))

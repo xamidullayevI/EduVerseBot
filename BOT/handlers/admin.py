@@ -61,7 +61,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         user_id = update.message.from_user.id
         if is_admin(user_id):
-            keyboard = [[KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))]]
+            keyboard = [
+                [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
+                [KeyboardButton("📊 Statistika")]
+            ]
             reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
             await update.message.reply_text(
                 "Admin panelga xush kelibsiz! /new bilan yangi mavzu boshlang.",
@@ -306,4 +309,19 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             "Kutilmagan xatolik yuz berdi. Iltimos, keyinroq qaytadan urinib ko'ring.\n"
             "Agar muammo davom etsa, administrator bilan bog'laning."
-        ) 
+        )
+
+async def stats_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update.message.from_user.id):
+        await update.message.reply_text("Siz admin emassiz!")
+        return
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{API_URL}/api/stats") as resp:
+                data = await resp.json()
+                await update.message.reply_text(
+                    f"📊 Statistika:\nJami foydalanuvchilar: {data.get('users_count', 0)}"
+                )
+    except Exception as e:
+        logger.error(f"Statistika olishda xatolik: {e}")
+        await update.message.reply_text("Statistika olishda xatolik yuz berdi.") 

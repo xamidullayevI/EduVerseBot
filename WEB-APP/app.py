@@ -226,6 +226,12 @@ def upload_file():
 def index():
     return render_template('index.html')
 
+# --- Statistika endpoint ---
+@app.route('/api/stats')
+def stats():
+    users_count = Contact.query.count()
+    return jsonify({'users_count': users_count})
+
 # --- App ishga tushishi ---
 with app.app_context():
     db.create_all()
