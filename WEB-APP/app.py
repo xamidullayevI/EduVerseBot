@@ -78,7 +78,8 @@ class News(db.Model):
 
 class Feedback(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.BigInteger)
+    user_id = db.Column(db.BigInteger, nullable=True)
+    user_name = db.Column(db.String(255), nullable=True)
     topic_id = db.Column(db.Integer)
     comment = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -107,10 +108,9 @@ def format_sentences(text):
         if sentence.endswith(':'):
             main = sentence[:-1].strip()
             out = f'<b>{main}</b>:'
-        # Agar allaqachon raqam bilan boshlansa, uni o'zgartirmaymiz va raqam qo'shmaymiz
-        elif re.match(r'^\d+\.', sentence):
-            out = sentence
         else:
+            # Gap boshida raqam va nuqta bo'lsa, olib tashlaymiz
+            sentence = re.sub(r'^\d+\.\s*', '', sentence)
             out = f'{auto_num}. {sentence}'
             auto_num += 1
         formatted.append(out)
@@ -322,22 +322,33 @@ def feedback():
         user_id = data.get('user_id')
         topic_id = data.get('topic_id')
         comment = data.get('comment')
-        if not all([user_id, topic_id, comment]):
+        user_name = None
+        # user_id raqam emas, ism bo'lsa
+        try:
+            user_id_int = int(user_id)
+            user_id = user_id_int
+        except Exception:
+            user_name = user_id
+            user_id = None
+        if not all([topic_id, comment]) or (not user_id and not user_name):
             return jsonify({'error': 'Majburiy maydonlar toldirilmagan'}), 400
-        fb = Feedback(user_id=user_id, topic_id=topic_id, comment=comment)
+        fb = Feedback(user_id=user_id, user_name=user_name, topic_id=topic_id, comment=comment)
         db.session.add(fb)
         db.session.commit()
         return jsonify({'status': 'ok'})
     else:
-        # So'nggi 5 sharh, user ismi va topic title bilan
         feedbacks = Feedback.query.order_by(Feedback.created_at.desc()).limit(5).all()
         result = []
         for f in feedbacks:
-            user = Contact.query.filter_by(user_id=f.user_id).first()
+            if f.user_id:
+                user = Contact.query.filter_by(user_id=f.user_id).first()
+                user_display = user.first_name if user else 'Foydalanuvchi'
+            else:
+                user_display = f.user_name or 'Foydalanuvchi'
             topic = Topic.query.filter_by(id=f.topic_id).first()
             result.append({
                 'id': f.id,
-                'user': user.first_name if user else 'Foydalanuvchi',
+                'user': user_display,
                 'topic': topic.title if topic else 'Mavzu',
                 'comment': f.comment,
                 'created_at': f.created_at.strftime('%Y-%m-%d')
