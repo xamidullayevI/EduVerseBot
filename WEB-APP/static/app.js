@@ -397,15 +397,21 @@ function renderFeedbackBox(feedbacks) {
 function loadWelcomeStats() {
     // Statistika
     fetch('/api/stats').then(r=>r.json()).then(data => {
-        if (data.users_count !== undefined) {
-            const users = document.getElementById('stats-users');
-            if (users) users.textContent = data.users_count;
+        const users = document.getElementById('stats-users');
+        if (users && data.users_count !== undefined) {
+            users.textContent = data.users_count;
+        } else if (!users) {
+            console.warn('Element with id="stats-users" not found in DOM');
         }
-    });
+    }).catch(err => console.error('Stats API error:', err));
     fetch('/api/topics').then(r=>r.json()).then(data => {
         const topics = document.getElementById('stats-topics');
-        if (topics) topics.textContent = data.length;
-    });
+        if (topics && Array.isArray(data)) {
+            topics.textContent = data.length;
+        } else if (!topics) {
+            console.warn('Element with id="stats-topics" not found in DOM');
+        }
+    }).catch(err => console.error('Topics API error:', err));
     // Yangiliklar
     fetch('/api/news').then(r=>r.json()).then(news => {
         const newsList = document.querySelector('.welcome ul.list-unstyled');
@@ -418,7 +424,6 @@ function loadWelcomeStats() {
         const fbBox = document.querySelector('.welcome .bg-white.rounded-4.shadow-sm.p-4');
         if(fbBox) {
             fbBox.innerHTML = renderFeedbackBox(feedbacks);
-            // Toggle uchun event
             const toggle = fbBox.querySelector('.feedback-toggle');
             if (toggle) {
                 toggle.onclick = function() {
