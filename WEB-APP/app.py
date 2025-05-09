@@ -362,7 +362,6 @@ def feedback():
         topic_id = data.get('topic_id')
         comment = data.get('comment')
         user_name = None
-        # user_id raqam emas, ism bo'lsa
         try:
             user_id_int = int(user_id)
             user_id = user_id_int
@@ -371,10 +370,17 @@ def feedback():
             user_id = None
         if not all([topic_id, comment]) or (not user_id and not user_name):
             return jsonify({'error': 'Majburiy maydonlar toldirilmagan'}), 400
-        fb = Feedback(user_id=user_id, user_name=user_name, topic_id=topic_id, comment=comment)
-        db.session.add(fb)
-        db.session.commit()
-        return jsonify({'status': 'ok'})
+        try:
+            fb = Feedback(user_id=user_id, user_name=user_name, topic_id=topic_id, comment=comment)
+            db.session.add(fb)
+            db.session.commit()
+            return jsonify({'status': 'ok'})
+        except Exception as e:
+            import traceback
+            db.session.rollback()
+            logger.error(f'FEEDBACK ERROR: {e}')
+            logger.error(traceback.format_exc())
+            return jsonify({'error': 'Sharh saqlanmadi', 'details': str(e)}), 500
     else:
         feedbacks = Feedback.query.order_by(Feedback.created_at.desc()).limit(5).all()
         result = []
