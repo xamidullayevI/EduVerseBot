@@ -286,4 +286,11 @@ function closeSidebarIfOpen(e) {
         sidebar.classList.remove('open');
         document.body.classList.remove('menu-open');
     }
-} 
+}
+
+const navbar = document.querySelector('.navbar');
+function updateOverlayTop() {
+    overlay.style.top = navbar.offsetHeight + 'px';
+}
+window.addEventListener('resize', updateOverlayTop);
+updateOverlayTop(); 
