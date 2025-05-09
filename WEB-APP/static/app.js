@@ -92,13 +92,17 @@ function formatTopicContent(topic) {
                 <strong>Strukturasi:</strong>
                 <div class="structure">${topic.structure}</div>
             </div>
+            <div class="topic-media">
+                ${topic.image_url ? `<img src="${topic.image_url}" alt="Rasm">` : ''}
+                ${topic.video_url ? renderVideo(topic.video_url) : ''}
+            </div>
             <div class="topic-examples">
                 <div class="examples-accordion">
                     <div class="examples-header collapsed">
                         Misollar
                     </div>
                     <div class="examples-content">
-                        ${topic.examples}
+                        <div class="structure">${topic.examples}</div>
                     </div>
                 </div>
             </div>

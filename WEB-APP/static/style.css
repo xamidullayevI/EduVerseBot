@@ -175,7 +175,7 @@ img, video {
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     padding: 16px;
-    margin: 0 8px 24px 8px;
+    margin: 0 4px 24px 4px;
     color: #222;
 }
 .topic-card:hover {
