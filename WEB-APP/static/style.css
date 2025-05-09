@@ -313,4 +313,10 @@ img, video {
     .examples-content {
         padding: 12px;
     }
+}
+
+.navbar {
+    position: sticky;
+    top: 0;
+    z-index: 1100;
 } 
