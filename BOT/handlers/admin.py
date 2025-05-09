@@ -73,11 +73,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             keyboard = [
                 [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
                 [KeyboardButton("📊 Statistika")],
-                [KeyboardButton(NEW_TOPIC_BTN)]
+                [KeyboardButton(NEW_TOPIC_BTN)],
+                [KeyboardButton(DELETE_TOPIC_BTN)]
             ]
             reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
             await update.message.reply_text(
-                "Admin panelga xush kelibsiz! Yangi mavzu qo'shish uchun tugmani bosing.",
+                "Admin panelga xush kelibsiz! Yangi mavzu qo'shish yoki o'chirish uchun tugmani bosing.",
                 reply_markup=reply_markup
             )
         else:
@@ -152,7 +153,8 @@ async def ask_next_topic_step(update, context):
         keyboard = [
             [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
             [KeyboardButton("📊 Statistika")],
-            [KeyboardButton(NEW_TOPIC_BTN)]
+            [KeyboardButton(NEW_TOPIC_BTN)],
+            [KeyboardButton(DELETE_TOPIC_BTN)]
         ]
         reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
         await update.message.reply_text(
@@ -183,7 +185,8 @@ async def topic_text_step(update: Update, context: ContextTypes.DEFAULT_TYPE):
             keyboard = [
                 [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
                 [KeyboardButton("📊 Statistika")],
-                [KeyboardButton(NEW_TOPIC_BTN)]
+                [KeyboardButton(NEW_TOPIC_BTN)],
+                [KeyboardButton(DELETE_TOPIC_BTN)]
             ]
             reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
             await update.message.reply_text(
@@ -253,7 +256,8 @@ async def topic_text_step(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
             [KeyboardButton("📊 Statistika")],
-            [KeyboardButton(NEW_TOPIC_BTN)]
+            [KeyboardButton(NEW_TOPIC_BTN)],
+            [KeyboardButton(DELETE_TOPIC_BTN)]
         ]
         reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
         await update.message.reply_text(
@@ -310,7 +314,8 @@ async def skip_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
             [KeyboardButton("📊 Statistika")],
-            [KeyboardButton(NEW_TOPIC_BTN)]
+            [KeyboardButton(NEW_TOPIC_BTN)],
+            [KeyboardButton(DELETE_TOPIC_BTN)]
         ]
         reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
         await update.message.reply_text(
@@ -357,7 +362,8 @@ async def video_handler_topic(update: Update, context: ContextTypes.DEFAULT_TYPE
             keyboard = [
                 [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
                 [KeyboardButton("📊 Statistika")],
-                [KeyboardButton(NEW_TOPIC_BTN)]
+                [KeyboardButton(NEW_TOPIC_BTN)],
+                [KeyboardButton(DELETE_TOPIC_BTN)]
             ]
             reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
             await update.message.reply_text("Mavzu yaratish bekor qilindi.", reply_markup=reply_markup)
@@ -390,7 +396,8 @@ async def save_topic_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
                         keyboard = [
                             [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
                             [KeyboardButton("📊 Statistika")],
-                            [KeyboardButton(NEW_TOPIC_BTN)]
+                            [KeyboardButton(NEW_TOPIC_BTN)],
+                            [KeyboardButton(DELETE_TOPIC_BTN)]
                         ]
                         reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
                         await update.message.reply_text(
@@ -410,7 +417,8 @@ async def save_topic_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
         keyboard = [
             [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
             [KeyboardButton("📊 Statistika")],
-            [KeyboardButton(NEW_TOPIC_BTN)]
+            [KeyboardButton(NEW_TOPIC_BTN)],
+            [KeyboardButton(DELETE_TOPIC_BTN)]
         ]
         reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
         await update.message.reply_text(
