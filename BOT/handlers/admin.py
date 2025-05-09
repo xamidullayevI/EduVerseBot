@@ -28,6 +28,14 @@ MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
 ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime']
 MAX_VIDEO_SIZE = 50 * 1024 * 1024  # 50MB
 
+# --- Yangi mavzu qo'shish uchun tugmalar ---
+NEW_TOPIC_BTN = "➕ Yangi mavzu qo'shish"
+SKIP_BTN = "⏭ O'tkazib yuborish"
+CANCEL_BTN = "❌ Bekor qilish"
+SAVE_BTN = "✅ Saqlash"
+
+TOPIC_STEPS = ['title', 'structure', 'examples', 'image', 'video']
+
 def is_admin(user_id: int) -> bool:
     """Admin tekshiruv"""
     return user_id in ADMINS
@@ -63,11 +71,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if is_admin(user_id):
             keyboard = [
                 [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
-                [KeyboardButton("📊 Statistika")]
+                [KeyboardButton("📊 Statistika")],
+                [KeyboardButton(NEW_TOPIC_BTN)]
             ]
             reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
             await update.message.reply_text(
-                "Admin panelga xush kelibsiz! /new bilan yangi mavzu boshlang.",
+                "Admin panelga xush kelibsiz! Yangi mavzu qo'shish uchun tugmani bosing.",
                 reply_markup=reply_markup
             )
         else:
@@ -81,92 +90,103 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Start xatolik: {e}")
         await update.message.reply_text("Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.")
 
-async def new_topic(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Yangi mavzu yaratish"""
-    try:
-        if not is_admin(update.message.from_user.id):
-            await update.message.reply_text("Sizda bu buyruqni ishlatish huquqi yo'q!")
-            return
-        
-        if 'topic' in context.user_data and context.user_data['topic']:
-            await update.message.reply_text(
-                "Sizda allaqachon mavzu yaratish jarayoni bor. "
-                "Agar yangi mavzu boshlashni xohlasangiz, /confirm yoki /skip buyrug'ini bosing."
-            )
-            return
-            
-        context.user_data['topic'] = {}
-        await update.message.reply_text("Mavzu nomini yuboring:")
-    except Exception as e:
-        logger.error(f"New topic xatolik: {e}")
-        await update.message.reply_text("Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.")
+async def new_topic_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update.message.from_user.id):
+        return
+    context.user_data['topic'] = {}
+    context.user_data['topic_step'] = 0
+    await ask_next_topic_step(update, context)
 
-async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Matn qabul qilish"""
-    try:
-        if not is_admin(update.message.from_user.id):
-            await update.message.reply_text("Sizda bu buyruqni ishlatish huquqi yo'q!")
-            return
+async def ask_next_topic_step(update, context):
+    step_idx = context.user_data.get('topic_step', 0)
+    if step_idx >= len(TOPIC_STEPS):
+        await update.message.reply_text(
+            "Barcha ma'lumotlar qabul qilindi. Saqlash uchun tugmani bosing:",
+            reply_markup=ReplyKeyboardMarkup([[KeyboardButton(SAVE_BTN)], [KeyboardButton(CANCEL_BTN)]], resize_keyboard=True)
+        )
+        return
+    step = TOPIC_STEPS[step_idx]
+    if step == 'title':
+        await update.message.reply_text("Mavzu nomini kiriting:", reply_markup=ReplyKeyboardMarkup([[KeyboardButton(CANCEL_BTN)]], resize_keyboard=True))
+    elif step == 'structure':
+        await update.message.reply_text("Mavzu tuzilmasini kiriting:", reply_markup=ReplyKeyboardMarkup([[KeyboardButton(CANCEL_BTN)]], resize_keyboard=True))
+    elif step == 'examples':
+        await update.message.reply_text("Misollarni kiriting:", reply_markup=ReplyKeyboardMarkup([[KeyboardButton(CANCEL_BTN)]], resize_keyboard=True))
+    elif step == 'image':
+        await update.message.reply_text(
+            "Rasm yuboring yoki o'tkazib yuborish uchun tugmani bosing:",
+            reply_markup=ReplyKeyboardMarkup([[KeyboardButton(SKIP_BTN)], [KeyboardButton(CANCEL_BTN)]], resize_keyboard=True)
+        )
+    elif step == 'video':
+        await update.message.reply_text(
+            "Video yuboring yoki o'tkazib yuborish uchun tugmani bosing:",
+            reply_markup=ReplyKeyboardMarkup([[KeyboardButton(SKIP_BTN)], [KeyboardButton(CANCEL_BTN)]], resize_keyboard=True)
+        )
 
-        if 'topic' not in context.user_data:
-            await update.message.reply_text("Iltimos, /new bilan boshlang.")
-            return
+async def topic_text_step(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update.message.from_user.id):
+        return
+    if 'topic_step' not in context.user_data:
+        return
+    step_idx = context.user_data['topic_step']
+    if step_idx >= len(TOPIC_STEPS):
+        return
+    step = TOPIC_STEPS[step_idx]
+    text = update.message.text
+    if text == CANCEL_BTN:
+        context.user_data.pop('topic', None)
+        context.user_data.pop('topic_step', None)
+        await update.message.reply_text("Mavzu yaratish bekor qilindi.", reply_markup=ReplyKeyboardRemove())
+        return
+    if step in ['title', 'structure', 'examples']:
+        context.user_data['topic'][step] = text
+        context.user_data['topic_step'] += 1
+        await ask_next_topic_step(update, context)
+    elif step == 'image':
+        await update.message.reply_text(
+            "Rasm yuboring yoki o'tkazib yuborish uchun tugmani bosing:",
+            reply_markup=ReplyKeyboardMarkup([[KeyboardButton(SKIP_BTN)], [KeyboardButton(CANCEL_BTN)]], resize_keyboard=True)
+        )
+    elif step == 'video':
+        await update.message.reply_text(
+            "Video yuboring yoki o'tkazib yuborish uchun tugmani bosing:",
+            reply_markup=ReplyKeyboardMarkup([[KeyboardButton(SKIP_BTN)], [KeyboardButton(CANCEL_BTN)]], resize_keyboard=True)
+        )
 
-        if not validate_text(update.message.text):
-            await update.message.reply_text("Matn noto'g'ri formatda yoki juda uzun.")
-            return
-
-        topic = context.user_data['topic']
-        if 'title' not in topic:
-            topic['title'] = update.message.text
-            await update.message.reply_text("Mavzu strukturasi (matn)ni yuboring:")
-        elif 'structure' not in topic:
-            topic['structure'] = update.message.text
-            await update.message.reply_text("Misollarni yuboring:")
-        elif 'examples' not in topic:
-            topic['examples'] = update.message.text
-            await update.message.reply_text("Endi rasm yuboring (ixtiyoriy, o'tkazib yuborish uchun /skip):")
-        else:
-            await update.message.reply_text("Rasm yoki video kutilyapti yoki /confirm bosing.")
-    except Exception as e:
-        logger.error(f"Text handler xatolik: {e}")
-        await update.message.reply_text("Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.")
-
-async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Rasm qabul qilish"""
-    try:
-        if not is_admin(update.message.from_user.id):
-            await update.message.reply_text("Sizda bu buyruqni ishlatish huquqi yo'q!")
-            return
-
-        if 'topic' not in context.user_data:
-            await update.message.reply_text("Iltimos, /new bilan boshlang.")
-            return
-
+async def photo_handler_topic(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update.message.from_user.id):
+        return
+    if context.user_data.get('topic_step', 0) == TOPIC_STEPS.index('image'):
         photo = update.message.photo[-1]
         if photo.file_size > MAX_IMAGE_SIZE:
             await update.message.reply_text(f"Rasm hajmi {MAX_IMAGE_SIZE/1024/1024}MB dan oshmasligi kerak.")
             return
-
         file = await photo.get_file()
         context.user_data['topic']['image_url'] = file.file_path
-        await update.message.reply_text("Endi video yuboring (ixtiyoriy, o'tkazib yuborish uchun /skip):")
-    except Exception as e:
-        logger.error(f"Photo handler xatolik: {e}")
-        await update.message.reply_text("Rasm yuklashda xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.")
+        context.user_data['topic_step'] += 1
+        await ask_next_topic_step(update, context)
 
-async def video_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Video qabul qilish"""
-    try:
-        if not is_admin(update.message.from_user.id):
-            await update.message.reply_text("Sizda bu buyruqni ishlatish huquqi yo'q!")
-            return
+async def skip_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update.message.from_user.id):
+        return
+    if 'topic_step' not in context.user_data:
+        return
+    step_idx = context.user_data['topic_step']
+    if step_idx >= len(TOPIC_STEPS):
+        return
+    step = TOPIC_STEPS[step_idx]
+    if update.message.text == SKIP_BTN:
+        if step == 'image':
+            context.user_data['topic']['image_url'] = None
+        elif step == 'video':
+            context.user_data['topic']['video_url'] = None
+        context.user_data['topic_step'] += 1
+        await ask_next_topic_step(update, context)
 
-        if 'topic' not in context.user_data:
-            await update.message.reply_text("Iltimos, /new bilan boshlang.")
-            return
-
-        # Agar video fayl yuborilsa
+async def video_handler_topic(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update.message.from_user.id):
+        return
+    if context.user_data.get('topic_step', 0) == TOPIC_STEPS.index('video'):
         if update.message.video:
             video = update.message.video
             if video.file_size > MAX_VIDEO_SIZE:
@@ -174,81 +194,48 @@ async def video_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
             file = await video.get_file()
             context.user_data['topic']['video_url'] = file.file_path
-            await update.message.reply_text("Barcha ma'lumotlar qabul qilindi. /confirm bosing.")
-            return
-
-        # Agar YouTube havolasi yuborilsa
-        if update.message.text and validate_youtube_url(update.message.text):
+            context.user_data['topic_step'] += 1
+            await ask_next_topic_step(update, context)
+        elif update.message.text and validate_youtube_url(update.message.text):
             context.user_data['topic']['video_url'] = update.message.text
-            await update.message.reply_text("Barcha ma'lumotlar qabul qilindi. /confirm bosing.")
-            return
-
-        # Agar boshqa video havolasi yuborilsa
-        if update.message.text and validate_url(update.message.text):
+            context.user_data['topic_step'] += 1
+            await ask_next_topic_step(update, context)
+        elif update.message.text and validate_url(update.message.text):
             context.user_data['topic']['video_url'] = update.message.text
-            await update.message.reply_text("Barcha ma'lumotlar qabul qilindi. /confirm bosing.")
-            return
-
-        # Hech narsa to'g'ri kelmasa
-        await update.message.reply_text(
-            "Video fayl yoki havola yuboring:\n"
-            "- Telegram orqali video fayl\n"
-            "- YouTube havolasi\n"
-            "- Boshqa video havolasi"
-        )
-    except Exception as e:
-        logger.error(f"Video handler xatolik: {e}")
-        await update.message.reply_text("Video yuklashda xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.")
-
-async def skip(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """O'tkazib yuborish"""
-    try:
-        if not is_admin(update.message.from_user.id):
-            await update.message.reply_text("Sizda bu buyruqni ishlatish huquqi yo'q!")
-            return
-
-        if 'topic' not in context.user_data:
-            await update.message.reply_text("Iltimos, /new bilan boshlang.")
-            return
-        
-        topic = context.user_data['topic']
-        if 'image_url' not in topic:
-            topic['image_url'] = None
-            await update.message.reply_text("Rasm o'tkazib yuborildi. Video yuboring (ixtiyoriy, o'tkazib yuborish uchun /skip):")
-        elif 'video_url' not in topic:
-            topic['video_url'] = None
-            await update.message.reply_text("Video o'tkazib yuborildi. /confirm bosing.")
+            context.user_data['topic_step'] += 1
+            await ask_next_topic_step(update, context)
+        elif update.message.text == SKIP_BTN:
+            context.user_data['topic']['video_url'] = None
+            context.user_data['topic_step'] += 1
+            await ask_next_topic_step(update, context)
+        elif update.message.text == CANCEL_BTN:
+            context.user_data.pop('topic', None)
+            context.user_data.pop('topic_step', None)
+            await update.message.reply_text("Mavzu yaratish bekor qilindi.", reply_markup=ReplyKeyboardRemove())
         else:
-            await update.message.reply_text("Barcha bosqichlar tugadi. /confirm bosing.")
-            context.user_data['topic'] = {}
-    except Exception as e:
-        logger.error(f"Skip xatolik: {e}")
-        await update.message.reply_text("Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.")
+            await update.message.reply_text(
+                "Video yuboring yoki o'tkazib yuborish uchun tugmani bosing:",
+                reply_markup=ReplyKeyboardMarkup([[KeyboardButton(SKIP_BTN)], [KeyboardButton(CANCEL_BTN)]], resize_keyboard=True)
+            )
 
-async def confirm_topic(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Mavzuni saqlash"""
-    try:
-        if not is_admin(update.message.from_user.id):
-            await update.message.reply_text("Sizda bu buyruqni ishlatish huquqi yo'q!")
-            return
-
+async def save_topic_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update.message.from_user.id):
+        return
+    if context.user_data.get('topic_step', 0) == len(TOPIC_STEPS) and update.message.text == SAVE_BTN:
         topic = context.user_data.get('topic')
         if not topic or 'title' not in topic or 'structure' not in topic or 'examples' not in topic:
             await update.message.reply_text("Ma'lumotlar to'liq emas.")
             return
-
         async with aiohttp.ClientSession() as session:
             async with session.post(f"{API_URL}/api/topics", json=topic) as resp:
                 if resp.status == 200:
-                    await update.message.reply_text("Mavzu saqlandi!")
+                    await update.message.reply_text("Mavzu saqlandi!", reply_markup=ReplyKeyboardRemove())
                     context.user_data['topic'] = {}
+                    context.user_data['topic_step'] = None
                 else:
                     error_text = await resp.text()
                     logger.error(f"Topic saqlash xatolik: {error_text}")
                     await update.message.reply_text("Mavzuni saqlashda xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.")
-    except Exception as e:
-        logger.error(f"Confirm topic xatolik: {e}")
-        await update.message.reply_text("Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.")
 
 async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Contact ma'lumotlarini qabul qilish"""
