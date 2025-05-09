@@ -82,14 +82,6 @@ searchResults.onclick = e => {
     }
 };
 
-function renderExamples(text) {
-    // Har bir nuqta bilan tugaydigan gapni raqamlab chiqaradi
-    if (!text) return '';
-    // Split by ". " (nuqta va probel) va filter bo'shlarni olib tashlash
-    const sentences = text.split('.').map(s => s.trim()).filter(Boolean);
-    return '<ol>' + sentences.map(s => `<li>${s}.</li>`).join('') + '</ol>';
-}
-
 async function showTopic(id, li) {
     document.querySelectorAll('.sidebar .list-group-item').forEach(el => el.classList.remove('active'));
     if (li) li.classList.add('active');
@@ -312,37 +304,11 @@ function updateOverlayTop() {
 window.addEventListener('resize', updateOverlayTop);
 updateOverlayTop();
 
-// Real-time stats, news, feedback rendering for welcome section
-function loadWelcomeStats() {
-    // Statistika
-    fetch('/api/stats').then(r=>r.json()).then(data => {
-        if (data.users_count !== undefined) {
-            document.getElementById('stats-users').textContent = data.users_count;
-        }
-    });
-    fetch('/api/topics').then(r=>r.json()).then(data => {
-        document.getElementById('stats-topics').textContent = data.length;
-    });
-    // Yangiliklar
-    fetch('/api/news').then(r=>r.json()).then(news => {
-        const newsList = document.querySelector('.welcome ul.list-unstyled');
-        if(newsList && news.length) {
-            newsList.innerHTML = news.map(n => `<li><b>${n.created_at}:</b> ${n.title}</li>`).join('');
-        }
-    });
-    // Foydalanuvchi sharhlari
-    fetch('/api/feedback').then(r=>r.json()).then(feedbacks => {
-        const fbBox = document.querySelector('.welcome .bg-white.rounded-4.shadow-sm.p-4');
-        if(fbBox && feedbacks.length) {
-            fbBox.innerHTML = `<div class='fw-bold mb-2' style='color:#2481cc;'>💬 Foydalanuvchi sharhlari</div>` +
-                feedbacks.map(f => `<div class='small text-muted mb-2'>"${f.comment}" <span class='text-secondary'>- ${f.user}</span></div>`).join('');
-        }
-    });
+// Update only stats and feedback after feedback submit
+function updateWelcomeFeedbackAndStats() {
+    loadWelcomeStats();
 }
 
-document.addEventListener('DOMContentLoaded', loadWelcomeStats);
-
-// Feedback form submit handler
 document.addEventListener('submit', async function(e) {
     if (e.target.classList.contains('feedback-form')) {
         e.preventDefault();
@@ -388,7 +354,7 @@ document.addEventListener('submit', async function(e) {
             if (data.status === 'ok') {
                 successMsg.style.display = 'block';
                 textarea.value = '';
-                if (document.querySelector('.welcome')) loadWelcomeStats();
+                updateWelcomeFeedbackAndStats();
             } else {
                 errorMsg.textContent = data.error || 'Xatolik yuz berdi.';
                 errorMsg.style.display = 'block';
@@ -400,5 +366,35 @@ document.addEventListener('submit', async function(e) {
     }
 });
 
-// Har 30 soniyada welcome stats yangilash (real-time uchun)
+// Ensure stats and feedback update on welcome and every 30s
+function loadWelcomeStats() {
+    // Statistika
+    fetch('/api/stats').then(r=>r.json()).then(data => {
+        if (data.users_count !== undefined) {
+            const users = document.getElementById('stats-users');
+            if (users) users.textContent = data.users_count;
+        }
+    });
+    fetch('/api/topics').then(r=>r.json()).then(data => {
+        const topics = document.getElementById('stats-topics');
+        if (topics) topics.textContent = data.length;
+    });
+    // Yangiliklar
+    fetch('/api/news').then(r=>r.json()).then(news => {
+        const newsList = document.querySelector('.welcome ul.list-unstyled');
+        if(newsList && news.length) {
+            newsList.innerHTML = news.map(n => `<li><b>${n.created_at}:</b> ${n.title}</li>`).join('');
+        }
+    });
+    // Foydalanuvchi sharhlari
+    fetch('/api/feedback').then(r=>r.json()).then(feedbacks => {
+        const fbBox = document.querySelector('.welcome .bg-white.rounded-4.shadow-sm.p-4');
+        if(fbBox && feedbacks.length) {
+            fbBox.innerHTML = `<div class='fw-bold mb-2' style='color:#2481cc;'>💬 Foydalanuvchi sharhlari</div>` +
+                feedbacks.map(f => `<div class='small text-muted mb-2'>"${f.comment}" <span class='text-secondary'>- ${f.user} (${f.topic})</span></div>`).join('');
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', loadWelcomeStats);
 setInterval(loadWelcomeStats, 30000); 
