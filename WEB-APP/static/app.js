@@ -326,6 +326,7 @@ function updateWelcomeFeedbackAndStats() {
 document.body.addEventListener('submit', async function(e) {
     if (e.target.classList.contains('feedback-form')) {
         e.preventDefault();
+        alert('Feedback form submit ishladi!');
         console.log('Feedback form submit ishladi!');
         const form = e.target;
         const topicId = form.getAttribute('data-topic-id');
