@@ -138,7 +138,14 @@ async def topic_text_step(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if text == CANCEL_BTN:
         context.user_data.pop('topic', None)
         context.user_data.pop('topic_step', None)
-        await update.message.reply_text("Mavzu yaratish bekor qilindi.", reply_markup=ReplyKeyboardRemove())
+        # Show main admin menu after cancel
+        keyboard = [
+            [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
+            [KeyboardButton("📊 Statistika")],
+            [KeyboardButton(NEW_TOPIC_BTN)]
+        ]
+        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
+        await update.message.reply_text("Mavzu yaratish bekor qilindi.", reply_markup=reply_markup)
         return
     if step in ['title', 'structure', 'examples']:
         context.user_data['topic'][step] = text
@@ -189,6 +196,8 @@ async def video_handler_topic(update: Update, context: ContextTypes.DEFAULT_TYPE
     if not is_admin(update.message.from_user.id):
         return
     if context.user_data.get('topic_step', 0) == TOPIC_STEPS.index('video'):
+        text = update.message.text
+        # 1. Video fayl
         if update.message.video:
             video = update.message.video
             if video.file_size > MAX_VIDEO_SIZE:
@@ -198,25 +207,36 @@ async def video_handler_topic(update: Update, context: ContextTypes.DEFAULT_TYPE
             context.user_data['topic']['video_url'] = file.file_path
             context.user_data['topic_step'] += 1
             await ask_next_topic_step(update, context)
-        elif update.message.text and validate_youtube_url(update.message.text):
-            context.user_data['topic']['video_url'] = update.message.text
+        # 2. YouTube havolasi
+        elif text and validate_youtube_url(text):
+            context.user_data['topic']['video_url'] = text
             context.user_data['topic_step'] += 1
             await ask_next_topic_step(update, context)
-        elif update.message.text and validate_url(update.message.text):
-            context.user_data['topic']['video_url'] = update.message.text
+        # 3. Boshqa video havolasi
+        elif text and validate_url(text):
+            context.user_data['topic']['video_url'] = text
             context.user_data['topic_step'] += 1
             await ask_next_topic_step(update, context)
-        elif update.message.text == SKIP_BTN:
+        # 4. Skip yoki cancel
+        elif text == SKIP_BTN:
             context.user_data['topic']['video_url'] = None
             context.user_data['topic_step'] += 1
             await ask_next_topic_step(update, context)
-        elif update.message.text == CANCEL_BTN:
+        elif text == CANCEL_BTN:
             context.user_data.pop('topic', None)
             context.user_data.pop('topic_step', None)
-            await update.message.reply_text("Mavzu yaratish bekor qilindi.", reply_markup=ReplyKeyboardRemove())
+            # Show main admin menu after cancel
+            keyboard = [
+                [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
+                [KeyboardButton("📊 Statistika")],
+                [KeyboardButton(NEW_TOPIC_BTN)]
+            ]
+            reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
+            await update.message.reply_text("Mavzu yaratish bekor qilindi.", reply_markup=reply_markup)
+        # 5. Noto'g'ri format
         else:
             await update.message.reply_text(
-                "Video yuboring yoki o'tkazib yuborish uchun tugmani bosing:",
+                "Video yoki video havolasini yuboring yoki o'tkazib yuborish uchun tugmani bosing:",
                 reply_markup=ReplyKeyboardMarkup([[KeyboardButton(SKIP_BTN)], [KeyboardButton(CANCEL_BTN)]], resize_keyboard=True)
             )
 
