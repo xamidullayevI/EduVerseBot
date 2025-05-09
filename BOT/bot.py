@@ -12,7 +12,6 @@ async def start_bot(token: str):
     application = Application.builder().token(token).build()
 
     application.add_handler(CommandHandler("start", admin.start))
-    application.add_handler(CommandHandler("confirm", admin.confirm_topic))
     application.add_handler(CommandHandler("skip", admin.skip))
     application.add_handler(CommandHandler("new", admin.new_topic))
 
