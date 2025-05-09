@@ -3,9 +3,16 @@ let tg = window.Telegram.WebApp;
 // Hamburger menu (Bootstrap bilan)
 const hamburger = document.getElementById('hamburger-menu');
 const sidebar = document.getElementById('sidebar');
+const overlay = document.querySelector('.sidebar-overlay');
 hamburger.onclick = () => {
     sidebar.classList.toggle('open');
     document.body.classList.toggle('menu-open');
+    overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
+};
+overlay.onclick = () => {
+    sidebar.classList.remove('open');
+    document.body.classList.remove('menu-open');
+    overlay.style.display = 'none';
 };
 
 // Qidiruv
@@ -265,10 +272,12 @@ document.addEventListener('click', function(e) {
     ) {
         if (
             !sidebar.contains(e.target) &&
-            !hamburger.contains(e.target)
+            !hamburger.contains(e.target) &&
+            !overlay.contains(e.target)
         ) {
             sidebar.classList.remove('open');
             document.body.classList.remove('menu-open');
+            overlay.style.display = 'none';
         }
     }
 });
