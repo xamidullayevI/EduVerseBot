@@ -242,4 +242,8 @@ img, video {
     width: 100%;
     min-width: 180px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.structure, .examples {
+    white-space: pre-line;
 } 

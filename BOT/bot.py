@@ -1,4 +1,4 @@
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler
 from telegram import Update
 from handlers import admin
 import os
@@ -17,6 +17,8 @@ async def start_bot(token: str):
     # Admin handlers
     application.add_handler(MessageHandler(filters.Regex("^📊 Statistika$"), admin.stats_handler))
     application.add_handler(MessageHandler(filters.Regex("^➕ Yangi mavzu qo'shish$"), admin.new_topic_button))
+    application.add_handler(MessageHandler(filters.Regex("^🗑 Mavzuni o'chirish$"), admin.delete_topic_button))
+    application.add_handler(CallbackQueryHandler(admin.delete_topic_callback, pattern=r"^delete_topic_\\d+$"))
     
     # Topic creation handlers
     application.add_handler(MessageHandler(

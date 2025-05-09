@@ -33,6 +33,7 @@ NEW_TOPIC_BTN = "➕ Yangi mavzu qo'shish"
 SKIP_BTN = "⏭ O'tkazib yuborish"
 CANCEL_BTN = "❌ Bekor qilish"
 SAVE_BTN = "✅ Saqlash"
+DELETE_TOPIC_BTN = "🗑 Mavzuni o'chirish"
 
 TOPIC_STEPS = ['title', 'structure', 'examples', 'image', 'video']
 
@@ -505,4 +506,33 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Foydalanuvchi uchun: topic yaratish jarayonida emas
     if 'topic_step' in context.user_data:
         return
-    await update.message.reply_text("Rasm yuborish adminlar uchun mo'ljallangan.") 
+    await update.message.reply_text("Rasm yuborish adminlar uchun mo'ljallangan.")
+
+async def delete_topic_button(update, context):
+    if not is_admin(update.message.from_user.id):
+        return
+    async with aiohttp.ClientSession() as session:
+        async with session.get(f"{API_URL}/api/topics") as resp:
+            topics = await resp.json()
+            if not topics:
+                await update.message.reply_text("Mavzular topilmadi.")
+                return
+            buttons = [
+                [InlineKeyboardButton(t['title'], callback_data=f"delete_topic_{t['id']}")]
+                for t in topics
+            ]
+            reply_markup = InlineKeyboardMarkup(buttons)
+            await update.message.reply_text("O'chirmoqchi bo'lgan mavzuni tanlang:", reply_markup=reply_markup)
+
+async def delete_topic_callback(update, context):
+    query = update.callback_query
+    if not is_admin(query.from_user.id):
+        await query.answer("Faqat adminlar uchun.")
+        return
+    topic_id = int(query.data.replace("delete_topic_", ""))
+    async with aiohttp.ClientSession() as session:
+        async with session.delete(f"{API_URL}/api/topics/{topic_id}") as resp:
+            if resp.status == 200:
+                await query.edit_message_text("Mavzu o'chirildi!")
+            else:
+                await query.edit_message_text("O'chirishda xatolik yuz berdi.") 
