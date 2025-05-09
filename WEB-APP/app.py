@@ -11,6 +11,7 @@ from werkzeug.utils import secure_filename
 import uuid
 from datetime import datetime
 import traceback
+import re
 
 # Log yozish sozlamalari
 logging.basicConfig(
@@ -77,6 +78,29 @@ def generate_filename(filename):
     """Xavfsiz fayl nomi yaratish"""
     ext = filename.rsplit('.', 1)[1].lower()
     return f"{uuid.uuid4().hex}.{ext}"
+
+def format_sentences(text):
+    if not text:
+        return ""
+    # . ! ? : dan keyin yangi qator
+    sentences = re.split(r'(?<=[.!?:])\s+', text.strip())
+    formatted = []
+    auto_num = 1
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+        # Qalin qilish: oxirida : bo'lsa, oxirgi : oldini qalin qilamiz va raqam ham qo'shilmaydi
+        if sentence.endswith(':'):
+            main = sentence[:-1].strip()
+            out = f'<b>{main}</b>:'
+        elif re.match(r'^\d+\.', sentence):
+            out = sentence  # allaqachon raqamli
+        else:
+            out = f'{auto_num}. {sentence}'
+            auto_num += 1
+        formatted.append(out)
+    return '\n'.join(formatted)
 
 @app.errorhandler(Exception)
 def handle_exception(e):
@@ -179,7 +203,9 @@ def topics():
             all_topics = Topic.query.order_by(Topic.created_at.desc()).all()
             return jsonify([{
                 'id': t.id,
-                'title': t.title
+                'title': t.title,
+                'structure': format_sentences(t.structure),
+                'examples': format_sentences(t.examples),
             } for t in all_topics])
 
     except Exception as e:
@@ -196,8 +222,8 @@ def topic_detail(topic_id):
         return jsonify({
             'id': t.id,
             'title': t.title,
-            'structure': t.structure,
-            'examples': t.examples,
+            'structure': format_sentences(t.structure),
+            'examples': format_sentences(t.examples),
             'image_url': t.image_url,
             'video_url': t.video_url
         })
@@ -257,6 +283,14 @@ def index():
 def stats():
     users_count = Contact.query.count()
     return jsonify({'users_count': users_count})
+
+# --- API: contact mavjudligini tekshirish ---
+@app.route('/api/contacts/<int:user_id>')
+def get_contact(user_id):
+    contact = Contact.query.filter_by(user_id=user_id).first()
+    if contact:
+        return jsonify({'status': 'ok'})
+    return jsonify({'error': 'Not found'}), 404
 
 # --- App ishga tushishi ---
 with app.app_context():

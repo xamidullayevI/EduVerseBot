@@ -82,6 +82,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=reply_markup
             )
         else:
+            # Foydalanuvchini bazadan tekshirish
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{API_URL}/api/contacts/{user_id}") as resp:
+                    if resp.status == 200:
+                        keyboard = [[KeyboardButton("🌐 Web App", web_app=WebAppInfo(url=WEBAPP_URL))]]
+                        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
+                        await update.message.reply_text(
+                            "Xush kelibsiz! Mavzularni ko'rish uchun Web App tugmasini bosing:",
+                            reply_markup=reply_markup
+                        )
+                        return
             keyboard = [[KeyboardButton("📱 Contact yuborish", request_contact=True)]]
             reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
             await update.message.reply_text(
