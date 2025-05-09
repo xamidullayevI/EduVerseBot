@@ -250,7 +250,7 @@ def upload_file():
 # --- HTML sahifa uchun route ---
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', topic=None)
 
 # --- Statistika endpoint ---
 @app.route('/api/stats')

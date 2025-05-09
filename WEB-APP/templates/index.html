@@ -34,7 +34,11 @@
                     <div class="spinner-border text-primary" role="status"></div>
                     <div>Mavzular yuklanmoqda...</div>
                 </div>
-                <strong>Strukturasi:</strong> <div class="structure">{{ topic.structure }}</div>
+                {% if topic %}
+                    <strong>Strukturasi:</strong> <div class="structure">{{ topic.structure }}</div>
+                {% else %}
+                    <div class="alert alert-info">Mavzu tanlanmagan.</div>
+                {% endif %}
             </main>
         </div>
     </div>
