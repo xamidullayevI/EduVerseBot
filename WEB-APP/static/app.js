@@ -96,7 +96,7 @@ function formatTopicContent(topic) {
         <div class="topic-card">
             <h2 class="topic-title">${topic.title}</h2>
             <div class="topic-structure">
-                <strong>Strukturasi:</strong>
+                <strong>Qoidalar:</strong>
                 <div class="structure">${topic.structure}</div>
             </div>
             <div class="topic-media">
