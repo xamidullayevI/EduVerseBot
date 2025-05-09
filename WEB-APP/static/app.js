@@ -316,16 +316,25 @@ document.addEventListener('submit', async function(e) {
         const form = e.target;
         const topicId = form.getAttribute('data-topic-id');
         const textarea = form.querySelector('textarea');
+        const submitBtn = form.querySelector('button[type="submit"]');
         const comment = textarea.value.trim();
         const successMsg = form.querySelector('.feedback-success');
         const errorMsg = form.querySelector('.feedback-error');
+        
+        // Reset messages
         successMsg.style.display = 'none';
         errorMsg.style.display = 'none';
+        
         if (!comment) {
-            errorMsg.textContent = 'Sharh bo‘sh bo‘lishi mumkin emas!';
+            errorMsg.textContent = "Sharh bo'sh bo'lishi mumkin emas!";
             errorMsg.style.display = 'block';
             return;
         }
+
+        // Disable submit button and show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Yuborilmoqda...';
+
         // user_id olish (Telegram yoki oddiy ism)
         let userId = null;
         if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
@@ -333,21 +342,30 @@ document.addEventListener('submit', async function(e) {
         } else {
             userId = localStorage.getItem('webapp_name');
             if (!userId) {
-                userId = prompt('Ismingizni kiriting (faqat bir marta so‘raladi):');
+                userId = prompt("Ismingizni kiriting (faqat bir marta so'raladi):");
                 if (userId) localStorage.setItem('webapp_name', userId);
             }
         }
+
         if (!userId) {
-            errorMsg.textContent = 'Ismingiz kiritilmadi.';
+            errorMsg.textContent = "Ismingiz kiritilmadi.";
             errorMsg.style.display = 'block';
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Yuborish';
             return;
         }
+
         try {
             const res = await fetch('/api/feedback', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: userId, topic_id: topicId, comment })
             });
+            
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            
             const data = await res.json();
             if (data.status === 'ok') {
                 textarea.value = '';
@@ -355,18 +373,22 @@ document.addEventListener('submit', async function(e) {
                 setTimeout(() => { successMsg.style.display = 'none'; }, 2500);
                 if (typeof updateWelcomeFeedbackAndStats === 'function') updateWelcomeFeedbackAndStats();
             } else {
-                errorMsg.textContent = data.error || 'Xatolik yuz berdi.';
-                errorMsg.style.display = 'block';
+                throw new Error(data.error || 'Xatolik yuz berdi.');
             }
         } catch (err) {
-            errorMsg.textContent = 'Tarmoq xatoligi.';
+            console.error('Feedback submission error:', err);
+            errorMsg.textContent = err.message || 'Tarmoq xatoligi.';
             errorMsg.style.display = 'block';
+        } finally {
+            // Reset button state
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Yuborish';
         }
     }
 });
 
 function renderFeedbackBox(feedbacks) {
-    if (!feedbacks.length) return "<div class='text-muted'>Sharhlar hali yo‘q.</div>";
+    if (!feedbacks.length) return "<div class='text-muted'>Sharhlar hali yo'q.</div>";
     let html = `<div class='fw-bold mb-2' style='color:#2481cc;'>💬 Foydalanuvchi sharhlari</div>`;
     const showCount = 3;
     const visible = feedbacks.slice(0, showCount);
@@ -388,7 +410,7 @@ function renderFeedbackBox(feedbacks) {
                 </div>`
             ).join('') +
             `</div>
-            <button class='btn btn-link p-0 feedback-toggle' style='font-size:0.98em;'>Barcha sharhlarni ko‘rish</button>`;
+            <button class='btn btn-link p-0 feedback-toggle' style='font-size:0.98em;'>Barcha sharhlarni ko'rish</button>`;
     }
     return html;
 }
@@ -433,7 +455,7 @@ function loadWelcomeStats() {
                         toggle.textContent = 'Yopish';
                     } else {
                         hidden.style.display = 'none';
-                        toggle.textContent = 'Barcha sharhlarni ko‘rish';
+                        toggle.textContent = 'Barcha sharhlarni ko'rish';
                     }
                 };
             }
