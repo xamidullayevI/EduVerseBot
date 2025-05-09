@@ -199,49 +199,56 @@ const videoFile = document.getElementById('video-file');
 const videoLink = document.getElementById('video-link');
 const videoPreview = document.getElementById('video-preview');
 
-imageFile.onchange = () => {
-    if (imageFile.files[0]) {
-        const reader = new FileReader();
-        reader.onload = e => {
-            imagePreview.innerHTML = `<img src="${e.target.result}" style="max-width:200px;">`;
-        };
-        reader.readAsDataURL(imageFile.files[0]);
-    }
-};
-imageLink.oninput = () => {
-    if (imageLink.value) {
-        imagePreview.innerHTML = `<img src="${imageLink.value}" style="max-width:200px;">`;
-    } else {
-        imagePreview.innerHTML = '';
-    }
-};
-videoFile.onchange = () => {
-    if (videoFile.files[0]) {
-        const reader = new FileReader();
-        reader.onload = e => {
-            videoPreview.innerHTML = `<video src="${e.target.result}" controls style="max-width:300px;"></video>`;
-        };
-        reader.readAsDataURL(videoFile.files[0]);
-    }
-};
-videoLink.oninput = () => {
-    if (videoLink.value.includes('youtube.com') || videoLink.value.includes('youtu.be')) {
-        // YouTube linkdan video ID ajratib iframe ko'rsatish
-        let videoId = '';
-        if (videoLink.value.includes('youtu.be/')) {
-            videoId = videoLink.value.split('youtu.be/')[1].split(/[?&]/)[0];
-        } else if (videoLink.value.includes('v=')) {
-            videoId = videoLink.value.split('v=')[1].split('&')[0];
+if (imageFile) {
+    imageFile.onchange = () => {
+        if (imageFile.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                imagePreview.innerHTML = `<img src="${e.target.result}" style="max-width:200px;">`;
+            };
+            reader.readAsDataURL(imageFile.files[0]);
         }
-        if (videoId) {
-            videoPreview.innerHTML = `<iframe width="300" height="180" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>`;
+    };
+}
+if (imageLink) {
+    imageLink.oninput = () => {
+        if (imageLink.value) {
+            imagePreview.innerHTML = `<img src="${imageLink.value}" style="max-width:200px;">`;
+        } else {
+            imagePreview.innerHTML = '';
         }
-    } else if (videoLink.value) {
-        videoPreview.innerHTML = `<video src="${videoLink.value}" controls style="max-width:300px;"></video>`;
-    } else {
-        videoPreview.innerHTML = '';
-    }
-};
+    };
+}
+if (videoFile) {
+    videoFile.onchange = () => {
+        if (videoFile.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                videoPreview.innerHTML = `<video src="${e.target.result}" controls style="max-width:300px;"></video>`;
+            };
+            reader.readAsDataURL(videoFile.files[0]);
+        }
+    };
+}
+if (videoLink) {
+    videoLink.oninput = () => {
+        if (videoLink.value.includes('youtube.com') || videoLink.value.includes('youtu.be')) {
+            let videoId = '';
+            if (videoLink.value.includes('youtu.be/')) {
+                videoId = videoLink.value.split('youtu.be/')[1].split(/[?&]/)[0];
+            } else if (videoLink.value.includes('v=')) {
+                videoId = videoLink.value.split('v=')[1].split('&')[0];
+            }
+            if (videoId) {
+                videoPreview.innerHTML = `<iframe width="300" height="180" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>`;
+            }
+        } else if (videoLink.value) {
+            videoPreview.innerHTML = `<video src="${videoLink.value}" controls style="max-width:300px;"></video>`;
+        } else {
+            videoPreview.innerHTML = '';
+        }
+    };
+}
 
 form.onsubmit = async e => {
     e.preventDefault();
