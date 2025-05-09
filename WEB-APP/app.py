@@ -104,6 +104,10 @@ def save_contact():
             return jsonify({'error': error_msg}), 400
 
         try:
+            # Baza ulanishini tekshirish
+            db.session.execute('SELECT 1')
+            logger.info("Baza ulanishi muvaffaqiyatli")
+
             contact = Contact.query.filter_by(user_id=user_id).first()
             if not contact:
                 contact = Contact(
@@ -121,16 +125,23 @@ def save_contact():
                 logger.info(f"Contact yangilandi: {user_id}")
 
             db.session.commit()
+            logger.info("Contact muvaffaqiyatli saqlandi")
             return jsonify({'status': 'ok'})
 
         except Exception as db_error:
-            logger.error(f"Baza xatolik: {db_error}")
+            logger.error(f"Baza xatolik: {str(db_error)}")
             db.session.rollback()
-            return jsonify({'error': 'Ma\'lumotlar bazasi xatolik'}), 500
+            return jsonify({
+                'error': 'Ma\'lumotlar bazasi xatolik',
+                'details': str(db_error)
+            }), 500
 
     except Exception as e:
-        logger.error(f"Contact saqlash xatolik: {e}")
-        return jsonify({'error': 'Server xatolik'}), 500
+        logger.error(f"Contact saqlash xatolik: {str(e)}")
+        return jsonify({
+            'error': 'Server xatolik',
+            'details': str(e)
+        }), 500
 
 # --- API: barcha topics ---
 @app.route('/api/topics', methods=['GET', 'POST'])

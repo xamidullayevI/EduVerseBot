@@ -5,6 +5,7 @@ import os
 import logging
 from typing import Optional, Dict, Any
 import re
+import json
 
 # Log yozish sozlamalari
 logging.basicConfig(
@@ -256,35 +257,46 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         }
         
         logger.info(f"Contact ma'lumotlari yuborilmoqda: {data}")
+        logger.info(f"API URL: {API_URL}")
         
         async with aiohttp.ClientSession() as session:
-            async with session.post(f"{API_URL}/api/contacts", json=data) as resp:
-                response_text = await resp.text()
-                logger.info(f"Server javobi: {response_text}")
-                
-                if resp.status == 200:
-                    keyboard = [[KeyboardButton("🌐 Web App", web_app=WebAppInfo(url=WEBAPP_URL))]]
-                    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
+            try:
+                async with session.post(f"{API_URL}/api/contacts", json=data) as resp:
+                    response_text = await resp.text()
+                    logger.info(f"Server javobi: Status={resp.status}, Response={response_text}")
                     
-                    await update.message.reply_text(
-                        "Contact ma'lumotlari saqlandi! Mavzularni ko'rish uchun Web App tugmasini bosing:",
-                        reply_markup=reply_markup
-                    )
-                else:
-                    logger.error(f"Contact saqlash xatolik: Status={resp.status}, Response={response_text}")
-                    await update.message.reply_text(
-                        f"Contact saqlashda xatolik yuz berdi (Status: {resp.status}).\n"
-                        "Iltimos, qaytadan urinib ko'ring.\n"
-                        "Agar muammo davom etsa, administrator bilan bog'laning."
-                    )
-    except aiohttp.ClientError as e:
-        logger.error(f"API ulanish xatolik: {e}")
-        await update.message.reply_text(
-            "Server bilan bog'lanishda xatolik yuz berdi. Iltimos, keyinroq qaytadan urinib ko'ring.\n"
-            "Agar muammo davom etsa, administrator bilan bog'laning."
-        )
+                    if resp.status == 200:
+                        keyboard = [[KeyboardButton("🌐 Web App", web_app=WebAppInfo(url=WEBAPP_URL))]]
+                        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
+                        
+                        await update.message.reply_text(
+                            "Contact ma'lumotlari saqlandi! Mavzularni ko'rish uchun Web App tugmasini bosing:",
+                            reply_markup=reply_markup
+                        )
+                    else:
+                        error_msg = f"Contact saqlashda xatolik yuz berdi (Status: {resp.status}).\n"
+                        try:
+                            error_data = json.loads(response_text)
+                            if 'details' in error_data:
+                                error_msg += f"Xatolik tafsiloti: {error_data['details']}\n"
+                        except:
+                            error_msg += f"Server javobi: {response_text}\n"
+                        
+                        error_msg += "Iltimos, qaytadan urinib ko'ring.\n"
+                        error_msg += "Agar muammo davom etsa, administrator bilan bog'laning."
+                        
+                        logger.error(error_msg)
+                        await update.message.reply_text(error_msg)
+            except aiohttp.ClientError as e:
+                error_msg = f"API ulanish xatolik: {str(e)}"
+                logger.error(error_msg)
+                await update.message.reply_text(
+                    "Server bilan bog'lanishda xatolik yuz berdi. Iltimos, keyinroq qaytadan urinib ko'ring.\n"
+                    "Agar muammo davom etsa, administrator bilan bog'laning."
+                )
     except Exception as e:
-        logger.error(f"Contact handler xatolik: {e}")
+        error_msg = f"Contact handler xatolik: {str(e)}"
+        logger.error(error_msg)
         await update.message.reply_text(
             "Kutilmagan xatolik yuz berdi. Iltimos, keyinroq qaytadan urinib ko'ring.\n"
             "Agar muammo davom etsa, administrator bilan bog'laning."
