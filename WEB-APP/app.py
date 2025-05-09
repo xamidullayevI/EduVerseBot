@@ -195,6 +195,18 @@ def topic_detail(topic_id):
         logger.error(f"Topic detail xatolik: {e}")
         return jsonify({'error': 'Server xatolik'}), 500
 
+# --- API: topic o'chirish ---
+@app.route('/api/topics/<int:topic_id>', methods=['DELETE'])
+def delete_topic(topic_id):
+    try:
+        topic = Topic.query.get_or_404(topic_id)
+        db.session.delete(topic)
+        db.session.commit()
+        return jsonify({'status': 'deleted'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 # --- Fayl yuklash endpoint ---
 @app.route('/api/upload', methods=['POST'])
 def upload_file():

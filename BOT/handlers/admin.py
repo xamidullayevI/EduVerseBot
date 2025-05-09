@@ -541,6 +541,15 @@ async def delete_topic_callback(update, context):
     async with aiohttp.ClientSession() as session:
         async with session.delete(f"{API_URL}/api/topics/{topic_id}") as resp:
             if resp.status == 200:
-                await query.edit_message_text("Mavzu o'chirildi!")
+                # Asosiy menyu keyboard
+                keyboard = [
+                    [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
+                    [KeyboardButton("📊 Statistika")],
+                    [KeyboardButton(NEW_TOPIC_BTN)],
+                    [KeyboardButton(DELETE_TOPIC_BTN)]
+                ]
+                reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
+                await query.edit_message_text("Mavzu o'chirildi! Asosiy menyuga qaytdingiz.")
+                await query.message.reply_text("Asosiy menyu:", reply_markup=reply_markup)
             else:
                 await query.edit_message_text("O'chirishda xatolik yuz berdi.") 
