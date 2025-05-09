@@ -421,7 +421,7 @@ function loadWelcomeStats() {
     });
     // Foydalanuvchi sharhlari
     fetch('/api/feedback').then(r=>r.json()).then(feedbacks => {
-        const fbBox = document.querySelector('.welcome .bg-white.rounded-4.shadow-sm.p-4');
+        const fbBox = document.getElementById('feedback-list');
         if(fbBox) {
             fbBox.innerHTML = renderFeedbackBox(feedbacks);
             const toggle = fbBox.querySelector('.feedback-toggle');
