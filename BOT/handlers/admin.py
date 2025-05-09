@@ -171,22 +171,28 @@ async def video_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
             file = await video.get_file()
             context.user_data['topic']['video_url'] = file.file_path
-        # Agar YouTube havolasi yuborilsa
-        elif update.message.text and validate_youtube_url(update.message.text):
-            context.user_data['topic']['video_url'] = update.message.text
-        # Agar boshqa havola yuborilsa
-        elif update.message.text and validate_url(update.message.text):
-            context.user_data['topic']['video_url'] = update.message.text
-        else:
-            await update.message.reply_text(
-                "Video fayl yoki havola yuboring:\n"
-                "- Telegram orqali video fayl\n"
-                "- YouTube havolasi\n"
-                "- Boshqa video havolasi"
-            )
+            await update.message.reply_text("Barcha ma'lumotlar qabul qilindi. /confirm bosing.")
             return
 
-        await update.message.reply_text("Barcha ma'lumotlar qabul qilindi. /confirm bosing.")
+        # Agar YouTube havolasi yuborilsa
+        if update.message.text and validate_youtube_url(update.message.text):
+            context.user_data['topic']['video_url'] = update.message.text
+            await update.message.reply_text("Barcha ma'lumotlar qabul qilindi. /confirm bosing.")
+            return
+
+        # Agar boshqa video havolasi yuborilsa
+        if update.message.text and validate_url(update.message.text):
+            context.user_data['topic']['video_url'] = update.message.text
+            await update.message.reply_text("Barcha ma'lumotlar qabul qilindi. /confirm bosing.")
+            return
+
+        # Hech narsa to'g'ri kelmasa
+        await update.message.reply_text(
+            "Video fayl yoki havola yuboring:\n"
+            "- Telegram orqali video fayl\n"
+            "- YouTube havolasi\n"
+            "- Boshqa video havolasi"
+        )
     except Exception as e:
         logger.error(f"Video handler xatolik: {e}")
         await update.message.reply_text("Video yuklashda xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.")

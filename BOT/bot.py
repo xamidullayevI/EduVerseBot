@@ -11,15 +11,19 @@ load_dotenv(dotenv_path)
 async def start_bot(token: str):
     application = Application.builder().token(token).build()
 
-    # Handlerlarni qo‘shamiz
     application.add_handler(CommandHandler("start", admin.start))
     application.add_handler(CommandHandler("new", admin.new_topic))
     application.add_handler(CommandHandler("confirm", admin.confirm_topic))
     application.add_handler(CommandHandler("skip", admin.skip))
-    
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin.text_handler))
-    application.add_handler(MessageHandler(filters.PHOTO, admin.photo_handler))
+
+    # Avval video handlerlar
     application.add_handler(MessageHandler(filters.VIDEO, admin.video_handler))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin.video_handler))
+
+    # Keyin photo va boshqa textlar
+    application.add_handler(MessageHandler(filters.PHOTO, admin.photo_handler))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin.text_handler))
+
     application.add_handler(MessageHandler(filters.CONTACT, admin.contact_handler))
 
     print("Bot started...")
