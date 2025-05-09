@@ -4,16 +4,29 @@ let tg = window.Telegram.WebApp;
 const hamburger = document.getElementById('hamburger-menu');
 const sidebar = document.getElementById('sidebar');
 const overlay = document.querySelector('.sidebar-overlay');
-hamburger.onclick = () => {
+
+function toggleSidebar(e) {
+    if (e) e.preventDefault();
     sidebar.classList.toggle('open');
     document.body.classList.toggle('menu-open');
     overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
-};
-overlay.onclick = () => {
-    sidebar.classList.remove('open');
-    document.body.classList.remove('menu-open');
-    overlay.style.display = 'none';
-};
+}
+
+if (hamburger) {
+    hamburger.onclick = toggleSidebar;
+    hamburger.ontouchstart = function(e) {
+        // Prevent double firing on touch devices
+        e.preventDefault();
+        toggleSidebar(e);
+    };
+}
+if (overlay) {
+    overlay.onclick = () => {
+        sidebar.classList.remove('open');
+        document.body.classList.remove('menu-open');
+        overlay.style.display = 'none';
+    };
+}
 
 // Qidiruv
 const searchInput = document.getElementById('search-input');
@@ -418,50 +431,92 @@ function renderFeedbackBox(feedbacks) {
 // Welcome statsni yangilashda:
 function loadWelcomeStats() {
     // Statistika
-    fetch('/api/stats').then(r=>r.json()).then(data => {
-        const users = document.getElementById('stats-users');
-        if (users && data.users_count !== undefined) {
-            users.textContent = data.users_count;
-        } else if (!users) {
-            console.warn('Element with id="stats-users" not found in DOM');
-        }
-    }).catch(err => console.error('Stats API error:', err));
-    fetch('/api/topics').then(r=>r.json()).then(data => {
-        const topics = document.getElementById('stats-topics');
-        if (topics && Array.isArray(data)) {
-            topics.textContent = data.length;
-        } else if (!topics) {
-            console.warn('Element with id="stats-topics" not found in DOM');
-        }
-    }).catch(err => console.error('Topics API error:', err));
-    // Yangiliklar
-    fetch('/api/news').then(r=>r.json()).then(news => {
-        const newsList = document.querySelector('.welcome ul.list-unstyled');
-        if(newsList && news.length) {
-            newsList.innerHTML = news.map(n => `<li><b>${n.created_at}:</b> ${n.title}</li>`).join('');
-        }
-    });
-    // Foydalanuvchi sharhlari
-    fetch('/api/feedback').then(r=>r.json()).then(feedbacks => {
-        const fbBox = document.getElementById('feedback-list');
-        if(fbBox) {
-            fbBox.innerHTML = renderFeedbackBox(feedbacks);
-            const toggle = fbBox.querySelector('.feedback-toggle');
-            if (toggle) {
-                toggle.onclick = function() {
-                    const hidden = fbBox.querySelector('.feedback-hidden');
-                    if (hidden.style.display === 'none') {
-                        hidden.style.display = 'block';
-                        toggle.textContent = 'Yopish';
-                    } else {
-                        hidden.style.display = 'none';
-                        toggle.textContent = 'Barcha sharhlarni ko'rish';
-                    }
-                };
+    fetch('/api/stats')
+        .then(r => r.json())
+        .then(data => {
+            const users = document.getElementById('stats-users');
+            if (users && data.users_count !== undefined) {
+                users.textContent = data.users_count;
+            } else if (!users) {
+                console.warn('Element with id="stats-users" not found in DOM');
             }
-        }
-    });
+        })
+        .catch(err => {
+            console.error('Stats API error:', err);
+            const users = document.getElementById('stats-users');
+            if (users) users.textContent = '...';
+        });
+
+    // Mavzular soni
+    fetch('/api/topics')
+        .then(r => r.json())
+        .then(data => {
+            const topics = document.getElementById('stats-topics');
+            if (topics && Array.isArray(data)) {
+                topics.textContent = data.length;
+            } else if (!topics) {
+                console.warn('Element with id="stats-topics" not found in DOM');
+            }
+        })
+        .catch(err => {
+            console.error('Topics API error:', err);
+            const topics = document.getElementById('stats-topics');
+            if (topics) topics.textContent = '...';
+        });
+
+    // Yangiliklar
+    fetch('/api/news')
+        .then(r => r.json())
+        .then(news => {
+            const newsList = document.getElementById('news-list');
+            if (newsList) {
+                if (news && news.length > 0) {
+                    newsList.innerHTML = news.map(n => 
+                        `<li><b>${n.created_at}:</b> ${n.title}</li>`
+                    ).join('');
+                } else {
+                    newsList.innerHTML = '<li class="text-center text-muted">Yangiliklar yo\'q</li>';
+                }
+            }
+        })
+        .catch(err => {
+            console.error('News API error:', err);
+            const newsList = document.getElementById('news-list');
+            if (newsList) {
+                newsList.innerHTML = '<li class="text-center text-danger">Yangiliklar yuklanmadi</li>';
+            }
+        });
+
+    // Foydalanuvchi sharhlari
+    fetch('/api/feedback')
+        .then(r => r.json())
+        .then(feedbacks => {
+            const fbBox = document.getElementById('feedback-list');
+            if (fbBox) {
+                fbBox.innerHTML = renderFeedbackBox(feedbacks);
+                const toggle = fbBox.querySelector('.feedback-toggle');
+                if (toggle) {
+                    toggle.onclick = function() {
+                        const hidden = fbBox.querySelector('.feedback-hidden');
+                        if (hidden.style.display === 'none') {
+                            hidden.style.display = 'block';
+                            toggle.textContent = "Yopish";
+                        } else {
+                            hidden.style.display = 'none';
+                            toggle.textContent = "Barcha sharhlarni ko'rish";
+                        }
+                    };
+                }
+            }
+        })
+        .catch(err => {
+            console.error('Feedback API error:', err);
+            const fbBox = document.getElementById('feedback-list');
+            if (fbBox) fbBox.innerHTML = "<div class='text-muted'>Sharhlar yuklanmadi.</div>";
+        });
 }
 
+// Load stats when page loads
 document.addEventListener('DOMContentLoaded', loadWelcomeStats);
+// Update stats every 30 seconds
 setInterval(loadWelcomeStats, 30000); 

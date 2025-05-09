@@ -307,12 +307,51 @@ def get_contact(user_id):
     return jsonify({'error': 'Not found'}), 404
 
 # --- API: barcha yangiliklar ---
-@app.route('/api/news', methods=['GET'])
+@app.route('/api/news', methods=['GET', 'POST'])
 def get_news():
-    news = News.query.order_by(News.created_at.desc()).limit(5).all()
-    return jsonify([
-        {'id': n.id, 'title': n.title, 'content': n.content, 'created_at': n.created_at.strftime('%Y-%m-%d')} for n in news
-    ])
+    try:
+        if request.method == 'POST':
+            data = request.json
+            if not data or not data.get('title'):
+                return jsonify({'error': 'Sarlavha kiritilmagan'}), 400
+            
+            news = News(
+                title=data.get('title'),
+                content=data.get('content', '')
+            )
+            db.session.add(news)
+            db.session.commit()
+            logger.info(f"Yangi yangilik qo'shildi: {news.title}")
+            return jsonify({'status': 'ok'})
+        else:
+            news = News.query.order_by(News.created_at.desc()).limit(5).all()
+            return jsonify([
+                {
+                    'id': n.id,
+                    'title': n.title,
+                    'content': n.content,
+                    'created_at': n.created_at.strftime('%Y-%m-%d')
+                } for n in news
+            ])
+    except Exception as e:
+        logger.error(f"News API xatolik: {e}")
+        logger.error(traceback.format_exc())
+        db.session.rollback()
+        return jsonify({'error': 'Server xatolik', 'details': str(e)}), 500
+
+# --- API: yangilikni o'chirish ---
+@app.route('/api/news/<int:news_id>', methods=['DELETE'])
+def delete_news(news_id):
+    try:
+        news = News.query.get_or_404(news_id)
+        db.session.delete(news)
+        db.session.commit()
+        return jsonify({'status': 'deleted'})
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Yangilik o'chirish xatolik: {e}")
+        logger.error(traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
 
 # --- API: barcha feedbacklar va yangi sharh qabul qilish ---
 @app.route('/api/feedback', methods=['GET', 'POST'])
