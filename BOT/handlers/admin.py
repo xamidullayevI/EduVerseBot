@@ -140,7 +140,7 @@ async def ask_next_topic_step(update, context):
                 [KeyboardButton(SKIP_BTN)],
                 [KeyboardButton(CANCEL_BTN)]
             ]
-            message = "Video yuboring yoki o'tkazib yuborish uchun tugmani bosing:"
+            message = "Video yuboring yoki video havolasini kiriting (YouTube yoki boshqa video havolasi).\nO'tkazib yuborish uchun tugmani bosing:"
 
         reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
         await update.message.reply_text(message, reply_markup=reply_markup)
@@ -170,38 +170,49 @@ async def topic_text_step(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         step_idx = context.user_data['topic_step']
-        if step_idx >= len(TOPIC_STEPS):
-            return
-
-        step = TOPIC_STEPS[step_idx]
         text = update.message.text
 
         # Cancel tugmasi bosilganda
         if text == CANCEL_BTN:
+            # Barcha ma'lumotlarni tozalash
             context.user_data.pop('topic', None)
             context.user_data.pop('topic_step', None)
+            
+            # Asosiy menyuga qaytish
             keyboard = [
                 [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
                 [KeyboardButton("📊 Statistika")],
                 [KeyboardButton(NEW_TOPIC_BTN)]
             ]
             reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
-            await update.message.reply_text("Mavzu yaratish bekor qilindi.", reply_markup=reply_markup)
+            await update.message.reply_text(
+                "Mavzu yaratish bekor qilindi. Asosiy menyuga qaytdingiz.",
+                reply_markup=reply_markup
+            )
             return
+
+        # Save tugmasi bosilganda
+        if text == SAVE_BTN and step_idx >= len(TOPIC_STEPS):
+            await save_topic_handler(update, context)
+            return
+
+        if step_idx >= len(TOPIC_STEPS):
+            return
+
+        step = TOPIC_STEPS[step_idx]
 
         # Skip tugmasi bosilganda
         if text == SKIP_BTN:
             if step == 'image':
                 context.user_data['topic']['image_url'] = None
+                logger.info("Rasm o'tkazib yuborildi")
             elif step == 'video':
                 context.user_data['topic']['video_url'] = None
+                logger.info("Video o'tkazib yuborildi")
+            
+            # Keyingi bosqichga o'tish
             context.user_data['topic_step'] += 1
             await ask_next_topic_step(update, context)
-            return
-
-        # Save tugmasi bosilganda
-        if text == SAVE_BTN and step_idx == len(TOPIC_STEPS):
-            await save_topic_handler(update, context)
             return
 
         # Matn kiritilganda
@@ -225,9 +236,13 @@ async def topic_text_step(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 context.user_data['topic_step'] += 1
                 await ask_next_topic_step(update, context)
             else:
+                keyboard = [
+                    [KeyboardButton(SKIP_BTN)],
+                    [KeyboardButton(CANCEL_BTN)]
+                ]
                 await update.message.reply_text(
                     "Noto'g'ri video havolasi. Iltimos, to'g'ri havola kiriting yoki o'tkazib yuborish tugmasini bosing:",
-                    reply_markup=ReplyKeyboardMarkup([[KeyboardButton(SKIP_BTN)], [KeyboardButton(CANCEL_BTN)]], resize_keyboard=True)
+                    reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
                 )
             return
 
@@ -241,7 +256,7 @@ async def topic_text_step(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
         await update.message.reply_text(
-            "Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.",
+            "Xatolik yuz berdi. Asosiy menyuga qaytdingiz.",
             reply_markup=reply_markup
         )
         context.user_data.pop('topic', None)
