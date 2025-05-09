@@ -358,25 +358,33 @@ def delete_news(news_id):
 def feedback():
     if request.method == 'POST':
         data = request.json
-        print('FEEDBACK POST DATA:', data)  # Debug print
+        print('FEEDBACK POST DATA:', data)
         user_id = data.get('user_id')
         topic_id = data.get('topic_id')
         comment = data.get('comment')
         user_name = None
+        # user_id ni int ga o'gir
         try:
             user_id_int = int(user_id)
             user_id = user_id_int
         except Exception:
             user_name = user_id
             user_id = None
+        # topic_id ni int ga o'gir
+        try:
+            topic_id_int = int(topic_id)
+            topic_id = topic_id_int
+        except Exception:
+            print('FEEDBACK ERROR: topic_id not integer')
+            return jsonify({'error': "Mavzu ID noto'g'ri"}), 400
         if not all([topic_id, comment]) or (not user_id and not user_name):
-            print('FEEDBACK ERROR: Majburiy maydonlar yo\'q')  # Debug print
+            print('FEEDBACK ERROR: Majburiy maydonlar yo\'q')
             return jsonify({'error': 'Majburiy maydonlar toldirilmagan'}), 400
         try:
             fb = Feedback(user_id=user_id, user_name=user_name, topic_id=topic_id, comment=comment)
             db.session.add(fb)
             db.session.commit()
-            print('FEEDBACK SUCCESS')  # Debug print
+            print('FEEDBACK SUCCESS')
             return jsonify({'status': 'ok'})
         except Exception as e:
             import traceback
