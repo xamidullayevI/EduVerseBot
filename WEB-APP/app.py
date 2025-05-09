@@ -10,6 +10,7 @@ import logging
 from werkzeug.utils import secure_filename
 import uuid
 from datetime import datetime
+import traceback
 
 # Log yozish sozlamalari
 logging.basicConfig(
@@ -77,6 +78,13 @@ def generate_filename(filename):
     ext = filename.rsplit('.', 1)[1].lower()
     return f"{uuid.uuid4().hex}.{ext}"
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    logger.error(f"Unhandled Exception: {str(e)}")
+    logger.error(traceback.format_exc())
+    # Foydalanuvchiga to'liq xatolikni ko'rsatish (faqat test uchun!)
+    return f"<pre>{traceback.format_exc()}</pre>", 500
+
 # --- API: contact saqlash ---
 @app.route('/api/contacts', methods=['POST'])
 def save_contact():
@@ -138,6 +146,7 @@ def save_contact():
 
     except Exception as e:
         logger.error(f"Contact saqlash xatolik: {str(e)}")
+        logger.error(traceback.format_exc())
         return jsonify({
             'error': 'Server xatolik',
             'details': str(e)
@@ -175,8 +184,9 @@ def topics():
 
     except Exception as e:
         logger.error(f"Topics API xatolik: {e}")
+        logger.error(traceback.format_exc())
         db.session.rollback()
-        return jsonify({'error': 'Server xatolik'}), 500
+        return jsonify({'error': 'Server xatolik', 'details': str(e)}), 500
 
 # --- API: 1ta topic tafsiloti ---
 @app.route('/api/topics/<int:topic_id>')
@@ -193,7 +203,8 @@ def topic_detail(topic_id):
         })
     except Exception as e:
         logger.error(f"Topic detail xatolik: {e}")
-        return jsonify({'error': 'Server xatolik'}), 500
+        logger.error(traceback.format_exc())
+        return jsonify({'error': 'Server xatolik', 'details': str(e)}), 500
 
 # --- API: topic o'chirish ---
 @app.route('/api/topics/<int:topic_id>', methods=['DELETE'])
@@ -205,6 +216,8 @@ def delete_topic(topic_id):
         return jsonify({'status': 'deleted'})
     except Exception as e:
         db.session.rollback()
+        logger.error(f"Topic o'chirish xatolik: {e}")
+        logger.error(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
 # --- Fayl yuklash endpoint ---
@@ -231,7 +244,8 @@ def upload_file():
 
     except Exception as e:
         logger.error(f"Fayl yuklash xatolik: {e}")
-        return jsonify({'error': 'Server xatolik'}), 500
+        logger.error(traceback.format_exc())
+        return jsonify({'error': 'Server xatolik', 'details': str(e)}), 500
 
 # --- HTML sahifa uchun route ---
 @app.route('/')
