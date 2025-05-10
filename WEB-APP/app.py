@@ -1,23 +1,33 @@
 from flask import Flask, jsonify, render_template, request, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from flask_caching import Cache
+from flask_socketio import SocketIO, emit
 import os
 from sqlalchemy import create_engine, text
 from sqlalchemy_utils import database_exists, create_database
 from dotenv import load_dotenv
 import pymysql
 import logging
+from logging.handlers import RotatingFileHandler
 from werkzeug.utils import secure_filename
 import uuid
 from datetime import datetime
 import traceback
 import re
+from functools import wraps
 
 # Log yozish sozlamalari
+if not os.path.exists('logs'):
+    os.makedirs('logs')
+
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO,
-    filename='webapp.log'
+    handlers=[
+        RotatingFileHandler('logs/webapp.log', maxBytes=10240, backupCount=10),
+        logging.StreamHandler()
+    ]
 )
 logger = logging.getLogger(__name__)
 
@@ -25,6 +35,11 @@ load_dotenv()
 pymysql.install_as_MySQLdb()
 
 app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Xavfsizlik sozlamalari
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+app.config['DEBUG'] = False  # Production'da False bo'lishi kerak
 
 # Fayl yuklash sozlamalari
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
@@ -35,8 +50,14 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
 
+# Cache sozlamalari
+cache = Cache(app, config={
+    'CACHE_TYPE': 'simple',
+    'CACHE_DEFAULT_TIMEOUT': 300
+})
+
 # --- Bazani sozlash ---
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'mysql://user:password@localhost:3306/eduverse')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # --- Baza avtomatik yaratiladi ---
@@ -116,12 +137,31 @@ def format_sentences(text):
         formatted.append(out)
     return '\n'.join(formatted)
 
+# API key tekshiruv
+def require_api_key(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        api_key = request.headers.get('X-API-Key')
+        if not api_key or api_key != os.getenv('API_KEY'):
+            return jsonify({'error': 'Invalid API key'}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+# Error handlers
+@app.errorhandler(404)
+def not_found_error(error):
+    return jsonify({'error': 'Not found'}), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    db.session.rollback()
+    return jsonify({'error': 'Internal server error'}), 500
+
 @app.errorhandler(Exception)
 def handle_exception(e):
     logger.error(f"Unhandled Exception: {str(e)}")
     logger.error(traceback.format_exc())
-    # Foydalanuvchiga to'liq xatolikni ko'rsatish (faqat test uchun!)
-    return f"<pre>{traceback.format_exc()}</pre>", 500
+    return jsonify({'error': 'Internal server error'}), 500
 
 # --- API: contact saqlash ---
 @app.route('/api/contacts', methods=['POST'])
@@ -296,7 +336,9 @@ def index():
 @app.route('/api/stats')
 def stats():
     users_count = Contact.query.count()
-    return jsonify({'users_count': users_count})
+    stats_data = {'users_count': users_count}
+    socketio.emit('stats_update', stats_data)
+    return jsonify(stats_data)
 
 # --- API: contact mavjudligini tekshirish ---
 @app.route('/api/contacts/<int:user_id>')
@@ -321,6 +363,15 @@ def get_news():
             )
             db.session.add(news)
             db.session.commit()
+            
+            # Emit socket event for new news
+            socketio.emit('news_update', {
+                'id': news.id,
+                'title': news.title,
+                'content': news.content,
+                'created_at': news.created_at.strftime('%Y-%m-%d')
+            })
+            
             logger.info(f"Yangi yangilik qo'shildi: {news.title}")
             return jsonify({'status': 'ok'})
         else:
@@ -363,14 +414,12 @@ def feedback():
         topic_id = data.get('topic_id')
         comment = data.get('comment')
         user_name = None
-        # user_id ni int ga o'gir
         try:
             user_id_int = int(user_id)
             user_id = user_id_int
         except Exception:
             user_name = user_id
             user_id = None
-        # topic_id ni int ga o'gir
         try:
             topic_id_int = int(topic_id)
             topic_id = topic_id_int
@@ -384,6 +433,16 @@ def feedback():
             fb = Feedback(user_id=user_id, user_name=user_name, topic_id=topic_id, comment=comment)
             db.session.add(fb)
             db.session.commit()
+            
+            # Emit socket event for new feedback
+            socketio.emit('feedback_update', {
+                'id': fb.id,
+                'user': user_name or (Contact.query.filter_by(user_id=user_id).first().first_name if user_id else 'Foydalanuvchi'),
+                'topic': Topic.query.get(topic_id).title,
+                'comment': comment,
+                'created_at': fb.created_at.strftime('%Y-%m-%d')
+            })
+            
             print('FEEDBACK SUCCESS')
             return jsonify({'status': 'ok'})
         except Exception as e:
@@ -413,9 +472,19 @@ def feedback():
             })
         return jsonify(result)
 
+# WebSocket handlers
+@socketio.on('connect')
+def handle_connect():
+    logger.info("Client connected")
+    emit('connected', {'data': 'Connected'})
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    logger.info("Client disconnected")
+
 # --- App ishga tushishi ---
 with app.app_context():
     db.create_all()
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    socketio.run(app, debug=True)

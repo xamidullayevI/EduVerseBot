@@ -32,11 +32,68 @@ if (overlay) {
 const searchInput = document.getElementById('search-input');
 let allTopics = [];
 
+// Error handling
+function showError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'alert alert-danger alert-dismissible fade show';
+    errorDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    document.body.insertBefore(errorDiv, document.body.firstChild);
+    setTimeout(() => errorDiv.remove(), 5000);
+}
+
+// Loading state
+function showLoading(element) {
+    element.disabled = true;
+    element.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Yuklanmoqda...';
+}
+
+function hideLoading(element, originalText) {
+    element.disabled = false;
+    element.textContent = originalText;
+}
+
+// API calls with error handling
+async function apiCall(url, options = {}) {
+    try {
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': window.API_KEY,
+                ...options.headers
+            }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Server xatolik');
+        }
+        
+        return await response.json();
+    } catch (error) {
+        showError(error.message);
+        throw error;
+    }
+}
+
+// Load topics with error handling
 async function loadTopics() {
-    const res = await fetch('/api/topics');
-    allTopics = await res.json();
-    renderTopics(allTopics);
-    document.querySelector('.loader').style.display = 'none';
+    try {
+        const topics = await apiCall('/api/topics');
+        allTopics = topics;
+        renderTopics(allTopics);
+        document.querySelector('.loader').style.display = 'none';
+    } catch (error) {
+        document.querySelector('.loader').innerHTML = `
+            <div class="text-danger">
+                <i class="bi bi-exclamation-triangle"></i>
+                Mavzular yuklanmadi. Iltimos, sahifani yangilang.
+            </div>
+        `;
+    }
 }
 
 function renderTopics(topics) {
@@ -95,15 +152,28 @@ searchResults.onclick = e => {
     }
 };
 
+// Show topic with error handling
 async function showTopic(id, li) {
-    document.querySelectorAll('.sidebar .list-group-item').forEach(el => el.classList.remove('active'));
-    if (li) li.classList.add('active');
-    const res = await fetch(`/api/topics/${id}`);
-    const topic = await res.json();
-    const main = document.getElementById('main-content');
-    main.innerHTML = formatTopicContent(topic);
-    // Welcome stats yangilash
-    loadWelcomeStats();
+    try {
+        document.querySelectorAll('.sidebar .list-group-item').forEach(el => el.classList.remove('active'));
+        if (li) li.classList.add('active');
+        
+        const topic = await apiCall(`/api/topics/${id}`);
+        const main = document.getElementById('main-content');
+        main.innerHTML = formatTopicContent(topic);
+        
+        // Welcome stats yangilash
+        loadWelcomeStats();
+        
+        // Mobilda sidebar avtomatik yopilsin
+        if (window.innerWidth < 992) {
+            sidebar.classList.remove('open');
+            document.body.classList.remove('menu-open');
+            if (overlay) overlay.style.display = 'none';
+        }
+    } catch (error) {
+        showError('Mavzu yuklanmadi. Iltimos, qaytadan urinib ko\'ring.');
+    }
 }
 
 function formatTopicContent(topic) {
@@ -449,7 +519,54 @@ function renderFeedbackBox(feedbacks) {
     return html;
 }
 
-// Welcome statsni yangilashda:
+// WebSocket connection
+const socket = io();
+
+// WebSocket event handlers
+socket.on('connect', () => {
+    console.log('Connected to WebSocket server');
+});
+
+socket.on('disconnect', () => {
+    console.log('Disconnected from WebSocket server');
+});
+
+socket.on('feedback_update', (data) => {
+    console.log('New feedback received:', data);
+    // Update feedback list
+    const fbBox = document.getElementById('feedback-list');
+    if (fbBox) {
+        const feedbacks = JSON.parse(localStorage.getItem('feedbacks') || '[]');
+        feedbacks.unshift(data);
+        localStorage.setItem('feedbacks', JSON.stringify(feedbacks.slice(0, 5)));
+        fbBox.innerHTML = renderFeedbackBox(feedbacks);
+    }
+});
+
+socket.on('stats_update', (data) => {
+    console.log('Stats updated:', data);
+    // Update stats
+    const users = document.getElementById('stats-users');
+    if (users && data.users_count !== undefined) {
+        users.textContent = data.users_count;
+    }
+});
+
+socket.on('news_update', (data) => {
+    console.log('News updated:', data);
+    // Update news
+    const newsList = document.getElementById('news-list');
+    if (newsList) {
+        const news = JSON.parse(localStorage.getItem('news') || '[]');
+        news.unshift(data);
+        localStorage.setItem('news', JSON.stringify(news.slice(0, 5)));
+        newsList.innerHTML = news.map(n => 
+            `<li><b>${n.created_at}:</b> ${n.title}</li>`
+        ).join('');
+    }
+});
+
+// Update loadWelcomeStats function
 function loadWelcomeStats() {
     // Statistika
     fetch('/api/stats')
@@ -458,8 +575,6 @@ function loadWelcomeStats() {
             const users = document.getElementById('stats-users');
             if (users && data.users_count !== undefined) {
                 users.textContent = data.users_count;
-            } else if (!users) {
-                console.warn('Element with id="stats-users" not found in DOM');
             }
         })
         .catch(err => {
@@ -475,8 +590,6 @@ function loadWelcomeStats() {
             const topics = document.getElementById('stats-topics');
             if (topics && Array.isArray(data)) {
                 topics.textContent = data.length;
-            } else if (!topics) {
-                console.warn('Element with id="stats-topics" not found in DOM');
             }
         })
         .catch(err => {
@@ -492,6 +605,7 @@ function loadWelcomeStats() {
             const newsList = document.getElementById('news-list');
             if (newsList) {
                 if (news && news.length > 0) {
+                    localStorage.setItem('news', JSON.stringify(news));
                     newsList.innerHTML = news.map(n => 
                         `<li><b>${n.created_at}:</b> ${n.title}</li>`
                     ).join('');
@@ -514,6 +628,7 @@ function loadWelcomeStats() {
         .then(feedbacks => {
             const fbBox = document.getElementById('feedback-list');
             if (fbBox) {
+                localStorage.setItem('feedbacks', JSON.stringify(feedbacks));
                 fbBox.innerHTML = renderFeedbackBox(feedbacks);
                 const toggle = fbBox.querySelector('.feedback-toggle');
                 if (toggle) {

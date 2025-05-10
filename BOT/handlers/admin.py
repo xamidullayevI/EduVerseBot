@@ -3,15 +3,24 @@ from telegram.ext import ContextTypes
 import aiohttp
 import os
 import logging
+from logging.handlers import RotatingFileHandler
 from typing import Optional, Dict, Any
 import re
 import json
+from functools import wraps
+import traceback
 
 # Log yozish sozlamalari
+if not os.path.exists('logs'):
+    os.makedirs('logs')
+
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO,
-    filename='bot.log'
+    handlers=[
+        RotatingFileHandler('logs/bot.log', maxBytes=10240, backupCount=10),
+        logging.StreamHandler()
+    ]
 )
 logger = logging.getLogger(__name__)
 
@@ -19,6 +28,7 @@ logger = logging.getLogger(__name__)
 ADMINS = [int(x) for x in os.getenv("ADMINS", "").split(",") if x.strip()]
 API_URL = os.getenv("API_URL", "http://localhost:5000")
 WEBAPP_URL = os.getenv("WEBAPP_URL", "http://localhost:5000")
+API_KEY = os.getenv("API_KEY")
 
 # Rasm formatlari
 ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif']
@@ -64,6 +74,26 @@ def validate_youtube_url(url: str) -> bool:
         r'(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})'
     )
     return bool(youtube_pattern.match(url))
+
+async def handle_error(update: Update, context: ContextTypes.DEFAULT_TYPE, error: Exception):
+    """Xatoliklarni boshqarish"""
+    logger.error(f"Xatolik yuz berdi: {str(error)}")
+    logger.error(traceback.format_exc())
+    
+    # Asosiy menyuga qaytish
+    keyboard = [
+        [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
+        [KeyboardButton("📊 Statistika")],
+        [KeyboardButton(NEW_TOPIC_BTN)],
+        [KeyboardButton(DELETE_TOPIC_BTN)]
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
+    
+    error_message = "Xatolik yuz berdi. Iltimos, keyinroq qaytadan urinib ko'ring."
+    if update.effective_message:
+        await update.effective_message.reply_text(error_message, reply_markup=reply_markup)
+    elif update.callback_query:
+        await update.callback_query.message.reply_text(error_message, reply_markup=reply_markup)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Start buyrug'i"""

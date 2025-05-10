@@ -7,29 +7,53 @@ import time
 from dotenv import load_dotenv
 import signal
 import atexit
+import logging
+from logging.handlers import RotatingFileHandler
+
+# Log yozish sozlamalari
+if not os.path.exists('logs'):
+    os.makedirs('logs')
+
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO,
+    handlers=[
+        RotatingFileHandler('logs/main.log', maxBytes=10240, backupCount=10),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 processes = []
 
 def cleanup():
     """Cleanup function to terminate all processes"""
+    logger.info("Cleaning up processes...")
     for process in processes:
         if process and process.poll() is None:
+            logger.info(f"Terminating process {process.pid}")
             process.terminate()
-            process.wait()
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                logger.warning(f"Process {process.pid} did not terminate gracefully, killing...")
+                process.kill()
+                process.wait()
 
 def signal_handler(signum, frame):
     """Handle termination signals"""
-    print("\n⚠️ Dastur to'xtatilmoqda...")
+    logger.info(f"Received signal {signum}, shutting down...")
     cleanup()
     sys.exit(0)
 
 def setup_virtual_env():
+    """Virtual environment setup"""
     venv_name = os.path.join(BASE_DIR, "venv")
     if not os.path.exists(venv_name):
-        print("📦 Virtual muhit yaratilmoqda...")
-        subprocess.run([sys.executable, '-m', 'venv', venv_name])
-        print("✅ Virtual muhit yaratildi!")
+        logger.info("Creating virtual environment...")
+        subprocess.run([sys.executable, '-m', 'venv', venv_name], check=True)
+        logger.info("Virtual environment created successfully")
     
     if sys.platform == "win32":
         python_path = os.path.join(venv_name, "Scripts", "python.exe")
@@ -41,49 +65,66 @@ def setup_virtual_env():
     return python_path, pip_path
 
 def check_directories():
-    if not os.path.exists(os.path.join(BASE_DIR, 'BOT')):
-        raise FileNotFoundError("❌ BOT papkasi topilmadi!")
-    if not os.path.exists(os.path.join(BASE_DIR, 'WEB-APP')):
-        raise FileNotFoundError("❌ WEB-APP papkasi topilmadi!")
+    """Check required directories"""
+    required_dirs = ['BOT', 'WEB-APP', 'logs']
+    for dir_name in required_dirs:
+        dir_path = os.path.join(BASE_DIR, dir_name)
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+            logger.info(f"Created directory: {dir_path}")
 
 def setup_env():
-    print("🌍 .env fayllar ulanyapti...")
+    """Setup environment files"""
+    logger.info("Setting up environment files...")
     env_source = os.path.join(BASE_DIR, '.env')
     bot_env_path = os.path.join(BASE_DIR, 'BOT', '.env')
     web_env_path = os.path.join(BASE_DIR, 'WEB-APP', '.env')
 
     if not os.path.exists(env_source):
-        raise FileNotFoundError("❌ Asosiy papkada .env fayl topilmadi!")
+        raise FileNotFoundError("Main .env file not found!")
 
     shutil.copy(env_source, bot_env_path)
     shutil.copy(env_source, web_env_path)
-
-    print("✅ .env fayllar sozlandi.")
+    logger.info("Environment files set up successfully")
 
 def install_requirements(pip_path):
-    print("📥 Kerakli kutubxonalar o'rnatilmoqda...")
-    subprocess.run([pip_path, 'install', '-r', os.path.join(BASE_DIR, 'requirements.txt')])
-    print("✅ Barcha kutubxonalar o'rnatildi!")
-
-def run_bot(python_path):
+    """Install required packages"""
+    logger.info("Installing requirements...")
     try:
-        print("🚀 Bot ishga tushmoqda...")
-        process = subprocess.Popen([python_path, 'run.py'], cwd=os.path.join(BASE_DIR, 'BOT'))
+        subprocess.run([pip_path, 'install', '-r', os.path.join(BASE_DIR, 'requirements.txt')], check=True)
+        logger.info("Requirements installed successfully")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to install requirements: {e}")
+        raise
+
+def run_process(name, command, cwd):
+    """Run a process with proper error handling"""
+    try:
+        logger.info(f"Starting {name}...")
+        process = subprocess.Popen(
+            command,
+            cwd=cwd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True
+        )
         processes.append(process)
         return process
     except Exception as e:
-        print(f"❌ Bot ishga tushirishda xatolik: {e}")
-        return None
+        logger.error(f"Failed to start {name}: {e}")
+        raise
 
-def run_webapp(python_path):
-    try:
-        print("🌐 Web app ishga tushmoqda...")
-        process = subprocess.Popen([python_path, 'app.py'], cwd=os.path.join(BASE_DIR, 'WEB-APP'))
-        processes.append(process)
-        return process
-    except Exception as e:
-        print(f"❌ Web app ishga tushirishda xatolik: {e}")
-        return None
+def monitor_process(process, name):
+    """Monitor a process and restart if it fails"""
+    while True:
+        if process.poll() is not None:
+            logger.error(f"{name} stopped unexpectedly with code {process.returncode}")
+            logger.info(f"Restarting {name}...")
+            if name == "Bot":
+                process = run_process(name, [sys.executable, 'run.py'], os.path.join(BASE_DIR, 'BOT'))
+            else:
+                process = run_process(name, [sys.executable, 'app.py'], os.path.join(BASE_DIR, 'WEB-APP'))
+        time.sleep(5)
 
 if __name__ == '__main__':
     try:
@@ -92,32 +133,26 @@ if __name__ == '__main__':
         signal.signal(signal.SIGTERM, signal_handler)
         atexit.register(cleanup)
 
+        # Setup
         python_path, pip_path = setup_virtual_env()
         check_directories()
         setup_env()
         install_requirements(pip_path)
 
-        bot_process = run_bot(python_path)
-        if not bot_process:
-            raise Exception("Bot ishga tushirilmadi!")
+        # Start processes
+        bot_process = run_process("Bot", [python_path, 'run.py'], os.path.join(BASE_DIR, 'BOT'))
+        time.sleep(2)  # Wait for bot to start
+        web_process = run_process("Web App", [python_path, 'app.py'], os.path.join(BASE_DIR, 'WEB-APP'))
 
-        time.sleep(2)  # Bot ishga tushishi uchun kutish
+        # Start monitoring threads
+        Thread(target=monitor_process, args=(bot_process, "Bot"), daemon=True).start()
+        Thread(target=monitor_process, args=(web_process, "Web App"), daemon=True).start()
 
-        web_process = run_webapp(python_path)
-        if not web_process:
-            raise Exception("Web app ishga tushirilmadi!")
-
-        # Monitor processes
+        # Keep main thread alive
         while True:
-            if bot_process.poll() is not None:
-                print("❌ Bot to'xtadi!")
-                break
-            if web_process.poll() is not None:
-                print("❌ Web app to'xtadi!")
-                break
             time.sleep(1)
 
     except Exception as e:
-        print(f"❌ Umumiy xatolik yuz berdi: {e}")
+        logger.error(f"Fatal error: {e}")
         cleanup()
         sys.exit(1)

@@ -17,10 +17,12 @@ eduverse/
 │   ├── templates/         # HTML shablonlar
 │   ├── .env              # Web ilova sozlamalari
 │   └── app.py            # Flask ilovasi
+├── logs/                  # Log fayllar
 ├── .env                  # Asosiy sozlamalar
 ├── .gitignore           # Git ignore fayllar
 ├── Procfile             # Heroku sozlamalari
 ├── requirements.txt     # Kerakli kutubxonalar
+├── runtime.txt         # Python versiyasi
 └── main.py             # Asosiy ishga tushirish fayli
 ```
 
@@ -28,7 +30,7 @@ eduverse/
 
 ### 1. Kerakli dasturlar
 
-- Python 3.8 yoki undan yuqori versiya
+- Python 3.9 yoki undan yuqori versiya
 - MySQL server 8.0 yoki undan yuqori versiya
 - Git
 - pip (Python paket menejeri)
@@ -82,6 +84,10 @@ CREATE DATABASE eduverse CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
      # Umumiy sozlamalar
      API_URL=http://localhost:5000
      WEBAPP_URL=http://localhost:5000
+
+     # Xavfsizlik sozlamalari
+     SECRET_KEY=your_secret_key_here
+     API_KEY=your_api_key_here
      ```
 
 ### 5. Web ilovani sozlash
@@ -92,6 +98,7 @@ CREATE DATABASE eduverse CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
    - [PythonAnywhere](https://www.pythonanywhere.com)
    - [Railway](https://railway.app)
    - [Render](https://render.com)
+
 2. Web ilova URL manzilini `.env` fayllarida `WEBAPP_URL` ga kiriting
 
 ### 6. Botni ishga tushirish
@@ -108,35 +115,63 @@ python BOT/run.py
 python WEB-APP/app.py
 ```
 
-## Bot buyruqlari
+## API Documentation
 
-### Admin uchun:
+### Endpoints
 
-- `/start` - Admin panelni ochish
-- `/new` - Yangi mavzu kiritish
-- `/confirm` - Mavzuni saqlash
-- `/skip` - Rasm yoki videoni o'tkazib yuborish
-- `/list` - Mavzular ro'yxatini ko'rish
-- `/delete` - Mavzuni o'chirish
+#### GET /api/topics
+Returns list of all topics
 
-### Foydalanuvchi uchun:
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "title": "Present Simple",
+    "structure": "Formatted structure text",
+    "examples": "Formatted examples text"
+  }
+]
+```
 
-- `/start` - Botni ishga tushirish va contact ma'lumotlarini yuborish
-- Web App tugmasi - Mavzularni ko'rish
-- `/help` - Yordam olish
+#### POST /api/topics
+Creates new topic
 
-## Web ilova funksiyalari
+**Request:**
+```json
+{
+  "title": "Topic title",
+  "structure": "Topic structure",
+  "examples": "Topic examples",
+  "image_url": "Optional image URL",
+  "video_url": "Optional video URL"
+}
+```
 
-- Barcha mavzular ro'yxati
-- Har bir mavzu uchun:
-  - Tuzilma
-  - Misollar
-  - Rasm
-  - Video
-- Mobil qurilmalarga moslashgan dizayn
-- Admin paneli
-- Fayl yuklash imkoniyati
-- Ma'lumotlar bazasi boshqaruvi
+#### GET /api/topics/{id}
+Returns topic details
+
+**Response:**
+```json
+{
+  "id": 1,
+  "title": "Topic title",
+  "structure": "Formatted structure text",
+  "examples": "Formatted examples text",
+  "image_url": "Image URL",
+  "video_url": "Video URL"
+}
+```
+
+#### DELETE /api/topics/{id}
+Deletes topic
+
+**Response:**
+```json
+{
+  "status": "deleted"
+}
+```
 
 ## Xavfsizlik
 
@@ -147,13 +182,18 @@ python WEB-APP/app.py
 - SQL injection himoyasi
 - XSS himoyasi
 - CSRF himoyasi
+- API key authentication
+- Rate limiting
+- Input validation
+- Secure headers
+- CORS configuration
 
 ## Yordam
 
 Agar muammolar yuzaga kelsa:
 
 1. [Issues](https://github.com/your-username/eduverse/issues) bo'limida xabar bering
-2. Telegram orqali bog'laning: [@](https://t.me/your_username)xamidullayev_i
+2. Telegram orqali bog'laning: [@xamidullayev_i](https://t.me/xamidullayev_i)
 3. Email orqali: ihamidullayev01@gmail.com
 
 ## Litsenziya
@@ -162,8 +202,7 @@ MIT License - [LICENSE](LICENSE) faylida batafsil ma'lumot
 
 ## Mualliflar
 
-- Ism Familiya - [GitHub](https://github.com/your-username)
-- Ism Familiya - [GitHub](https://github.com/your-username)
+- Islombek Xamidullayev - [GitHub](https://github.com/xamidullayev)
 
 ## Minnatdorchilik
 

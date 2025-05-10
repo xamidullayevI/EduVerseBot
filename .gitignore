@@ -1,33 +1,66 @@
 # Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
 # Virtual environment
 venv/
-
-# Environment variables
+ENV/
+env/
 .env
 .env.*
-BOT/.env
-BOT/.env.*
-WEB-APP/.env
-WEB-APP/.env.*
 
 # IDE/editor files
-.vscode/
 .idea/
+.vscode/
 *.swp
+*.swo
+*~
 
 # OS files
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # Log files
+logs/
 *.log
 bot.log
 webapp.log
 
 # Static/media uploads
-WEB-APP/static/uploads/ 
+WEB-APP/static/uploads/
+uploads/
+
+# Database
+*.db
+*.sqlite3
+
+# Cache
+__pycache__/
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Distribution
+dist/
+build/
+*.egg-info/ 
