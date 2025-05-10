@@ -501,4 +501,23 @@ async def save_topic_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
                         error_text = await resp.text()
                         logger.error(f"Topic saqlash xatolik: {error_text}")
                         await update.message.reply_text(
-                            "Mavzuni saqlashda
+                            "Mavzuni saqlashda xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.",
+                            reply_markup=ReplyKeyboardMarkup([[KeyboardButton(CANCEL_BTN)]], resize_keyboard=True)
+                        )
+    except Exception as e:
+        logger.error(f"save_topic_handler xatolik: {e}")
+        logger.error(traceback.format_exc())
+        # Xatolik yuz berganda asosiy menyuga qaytish
+        keyboard = [
+            [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
+            [KeyboardButton("📊 Statistika")],
+            [KeyboardButton(NEW_TOPIC_BTN)],
+            [KeyboardButton(DELETE_TOPIC_BTN)]
+        ]
+        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
+        await update.message.reply_text(
+            "Xatolik yuz berdi. Asosiy menyuga qaytdingiz.",
+            reply_markup=reply_markup
+        )
+        context.user_data.pop('topic', None)
+        context.user_data.pop('topic_step', None)
