@@ -495,24 +495,38 @@ document.body.addEventListener('submit', async function(e) {
 
 function renderFeedbackBox(feedbacks) {
     if (!feedbacks.length) return "<div class='text-muted'>Sharhlar hali yo'q.</div>";
-    let html = `<div class='fw-bold mb-2' style='color:#2481cc;'>💬 Foydalanuvchi sharhlari</div>`;
+    let html = `<div class='fw-bold mb-3' style='color:#2481cc;font-size:1.15em;'>💬 Foydalanuvchi sharhlari</div>`;
     const showCount = 3;
     const visible = feedbacks.slice(0, showCount);
     const hidden = feedbacks.slice(showCount);
 
     html += visible.map(f =>
-        `<div class='feedback-item small text-muted mb-2'>
-            <span class='d-block' style='font-size:1.05em;'>&ldquo;${f.comment}&rdquo;</span>
-            <span class='text-secondary' style='font-size:0.95em;'>- ${f.user} <span style='color:#bbb;'>(${f.topic})</span></span>
+        `<div class='feedback-item shadow-sm mb-3 p-3 rounded-4' style='background:#f8faff;border-left:5px solid #2481cc;'>
+            <div class='d-flex align-items-center mb-2'>
+                <div class='feedback-avatar me-2' style='width:38px;height:38px;border-radius:50%;background:#e3eefd;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1em;color:#2481cc;'>${(f.user||'Foydalanuvchi').charAt(0).toUpperCase()}</div>
+                <div>
+                    <span class='fw-bold' style='color:#2481cc;'>${f.user||'Foydalanuvchi'}</span>
+                    <span class='text-secondary small ms-2'>${f.created_at||''}</span>
+                </div>
+            </div>
+            <div class='mb-1' style='font-size:1.08em;color:#222;'>${f.comment}</div>
+            <div class='text-muted small mt-1'><i class='bi bi-book'></i> ${f.topic||'Mavzu'}</div>
         </div>`
     ).join('');
 
     if (hidden.length) {
         html += `<div class='feedback-hidden' style='display:none;'>` +
             hidden.map(f =>
-                `<div class='feedback-item small text-muted mb-2'>
-                    <span class='d-block' style='font-size:1.05em;'>&ldquo;${f.comment}&rdquo;</span>
-                    <span class='text-secondary' style='font-size:0.95em;'>- ${f.user} <span style='color:#bbb;'>(${f.topic})</span></span>
+                `<div class='feedback-item shadow-sm mb-3 p-3 rounded-4' style='background:#f8faff;border-left:5px solid #2481cc;'>
+                    <div class='d-flex align-items-center mb-2'>
+                        <div class='feedback-avatar me-2' style='width:38px;height:38px;border-radius:50%;background:#e3eefd;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1em;color:#2481cc;'>${(f.user||'Foydalanuvchi').charAt(0).toUpperCase()}</div>
+                        <div>
+                            <span class='fw-bold' style='color:#2481cc;'>${f.user||'Foydalanuvchi'}</span>
+                            <span class='text-secondary small ms-2'>${f.created_at||''}</span>
+                        </div>
+                    </div>
+                    <div class='mb-1' style='font-size:1.08em;color:#222;'>${f.comment}</div>
+                    <div class='text-muted small mt-1'><i class='bi bi-book'></i> ${f.topic||'Mavzu'}</div>
                 </div>`
             ).join('') +
             `</div>
