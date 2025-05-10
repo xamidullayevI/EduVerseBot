@@ -20,6 +20,7 @@ body {
 }
 
 .sidebar {
+    display: block !important;
     background: #fff;
     border-right: 1px solid #e0e7ff;
     border-radius: 0;
@@ -503,14 +504,11 @@ body {
         left: 0;
     }
     .sidebar-overlay {
-        display: block !important;
-        position: fixed;
-        z-index: 1050;
-        top: 56px;
-        left: 0; right: 0; bottom: 0;
-        background: rgba(36, 129, 204, 0.08);
-        transition: background 0.2s;
-    }
+    display: none !important;
+    background: none !important;
+    pointer-events: none !important;
+}
+
     .main {
         margin-top: 16px;
         border-radius: 14px;
@@ -537,8 +535,11 @@ body {
 }
 
 .sidebar-overlay {
-    display: none;
+    display: none !important;
+    background: none !important;
+    pointer-events: none !important;
 }
+
 
 body.menu-open {
     overflow: hidden;
@@ -987,16 +988,9 @@ body.menu-open {
 }
 
 .sidebar-overlay {
-    display: none;
-    position: fixed;
-    z-index: 1050;
-    top: 56px;
-    left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.2);
-}
-
-.sidebar.open ~ .sidebar-overlay {
-    display: block;
+    display: none !important;
+    background: none !important;
+    pointer-events: none !important;
 }
 
 .sidebar h5 {
