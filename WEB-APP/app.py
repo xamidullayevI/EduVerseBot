@@ -359,8 +359,13 @@ def upload_file():
         if not allowed_file(file.filename):
             return jsonify({'error': 'Ruxsat etilmagan fayl turi'}), 400
 
-        filename = generate_filename(file.filename)
+        # Fayl nomini xavfsiz qilish
+        filename = secure_filename(file.filename)
+        filename = generate_filename(filename)
         save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        # Path traversal oldini olish
+        if not os.path.abspath(save_path).startswith(os.path.abspath(app.config['UPLOAD_FOLDER'])):
+            return jsonify({'error': 'Fayl yo\'li noto\'g\'ri'}), 400
         file.save(save_path)
         url = f"/static/uploads/{filename}"
         
@@ -420,14 +425,15 @@ def get_news():
             logger.info(f"Yangi yangilik qo'shildi: {news.title}")
             return jsonify({'status': 'ok'})
         else:
-            news = News.query.order_by(News.created_at.desc()).limit(5).all()
+            # Eng oxirgi 3 ta mavzuni yangilik sifatida qaytarish
+            topics = Topic.query.order_by(Topic.created_at.desc()).limit(3).all()
             return jsonify([
                 {
-                    'id': n.id,
-                    'title': n.title,
-                    'content': n.content,
-                    'created_at': n.created_at.strftime('%Y-%m-%d')
-                } for n in news
+                    'id': t.id,
+                    'title': t.title,
+                    'content': t.structure,  # yoki t.examples
+                    'created_at': t.created_at.strftime('%Y-%m-%d')
+                } for t in topics
             ])
     except Exception as e:
         logger.error(f"News API xatolik: {e}")

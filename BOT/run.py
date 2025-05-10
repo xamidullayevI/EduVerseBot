@@ -13,14 +13,21 @@ load_dotenv(dotenv_path)
 print("ADMINS ENV:", os.getenv("ADMINS"))
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Asyncio loop'ni sozlaymiz
 nest_asyncio.apply()
 
 if __name__ == "__main__":
     try:
+        if not BOT_TOKEN:
+            logger.error("BOT_TOKEN .env faylida topilmadi! Bot ishga tushmaydi.")
+            exit(1)
         # Botni ishga tushirish
         asyncio.run(start_bot(BOT_TOKEN))
     except KeyboardInterrupt:
-        print("Bot to'xtatildi!")
+        logger.info("Bot to'xtatildi!")
     except Exception as e:
-        print(f"Xatolik yuz berdi: {e}")
+        logger.error(f"Xatolik yuz berdi: {e}")

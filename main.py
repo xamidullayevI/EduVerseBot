@@ -114,16 +114,15 @@ def run_process(name, command, cwd):
         logger.error(f"Failed to start {name}: {e}")
         raise
 
-def monitor_process(process, name):
+def monitor_process(process, name, command, cwd):
     """Monitor a process and restart if it fails"""
     while True:
         if process.poll() is not None:
             logger.error(f"{name} stopped unexpectedly with code {process.returncode}")
             logger.info(f"Restarting {name}...")
-            if name == "Bot":
-                process = run_process(name, [sys.executable, 'run.py'], os.path.join(BASE_DIR, 'BOT'))
-            else:
-                process = run_process(name, [sys.executable, 'app.py'], os.path.join(BASE_DIR, 'WEB-APP'))
+            # Restart process
+            new_process = run_process(name, command, cwd)
+            process = new_process
         time.sleep(5)
 
 if __name__ == '__main__':
@@ -140,13 +139,17 @@ if __name__ == '__main__':
         install_requirements(pip_path)
 
         # Start processes
-        bot_process = run_process("Bot", [python_path, 'run.py'], os.path.join(BASE_DIR, 'BOT'))
+        bot_command = [python_path, 'run.py']
+        bot_cwd = os.path.join(BASE_DIR, 'BOT')
+        bot_process = run_process("Bot", bot_command, bot_cwd)
         time.sleep(2)  # Wait for bot to start
-        web_process = run_process("Web App", [python_path, 'app.py'], os.path.join(BASE_DIR, 'WEB-APP'))
+        web_command = [python_path, 'app.py']
+        web_cwd = os.path.join(BASE_DIR, 'WEB-APP')
+        web_process = run_process("Web App", web_command, web_cwd)
 
         # Start monitoring threads
-        Thread(target=monitor_process, args=(bot_process, "Bot"), daemon=True).start()
-        Thread(target=monitor_process, args=(web_process, "Web App"), daemon=True).start()
+        Thread(target=monitor_process, args=(bot_process, "Bot", bot_command, bot_cwd), daemon=True).start()
+        Thread(target=monitor_process, args=(web_process, "Web App", web_command, web_cwd), daemon=True).start()
 
         # Keep main thread alive
         while True:
