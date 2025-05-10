@@ -80,6 +80,45 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# --- Error logging middleware ---
+@app.before_request
+def log_request_info():
+    logger.info('Headers: %s', dict(request.headers))
+    logger.info('Body: %s', request.get_data())
+
+class APIError(Exception):
+    def __init__(self, message, status_code=500, details=None):
+        super().__init__(message)
+        self.message = message
+        self.status_code = status_code
+        self.details = details or {}
+
+@app.errorhandler(APIError)
+def handle_api_error(error):
+    response = {
+        'error': error.message,
+        'details': error.details,
+        'timestamp': datetime.utcnow().isoformat()
+    }
+    return jsonify(response), error.status_code
+
+# --- Log formatting ---
+class RequestFormatter(logging.Formatter):
+    def format(self, record):
+        record.url = request.url if request else 'N/A'
+        record.remote_addr = request.remote_addr if request else 'N/A'
+        return super().format(record)
+
+formatter = RequestFormatter(
+    '[%(asctime)s] %(remote_addr)s requested %(url)s\n'
+    'Level: %(levelname)s\n'
+    'Message: %(message)s\n'
+)
+
+# Add formatter to handlers
+for handler in logger.handlers:
+    handler.setFormatter(formatter)
+
 # Initialize database
 db = SQLAlchemy(app)
 

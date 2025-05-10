@@ -9,6 +9,9 @@ import re
 import json
 from functools import wraps
 import traceback
+import asyncio
+import time
+from datetime import datetime, timedelta
 
 # Log yozish sozlamalari
 if not os.path.exists('logs'):
@@ -46,6 +49,52 @@ SAVE_BTN = "✅ Saqlash"
 DELETE_TOPIC_BTN = "🗑 Mavzuni o'chirish"
 
 TOPIC_STEPS = ['title', 'structure', 'examples', 'image', 'video']
+
+# Rate limiting settings
+RATE_LIMIT = 30  # max requests per second
+RATE_WINDOW = 1  # seconds
+RETRY_COUNT = 3
+RETRY_DELAY = 1  # seconds
+
+class RateLimiter:
+    def __init__(self, rate=RATE_LIMIT, per=RATE_WINDOW):
+        self.rate = rate
+        self.per = per
+        self.allowance = rate
+        self.last_check = time.time()
+
+    def is_allowed(self):
+        current = time.time()
+        time_passed = current - self.last_check
+        self.last_check = current
+        self.allowance += time_passed * (self.rate / self.per)
+        
+        if self.allowance > self.rate:
+            self.allowance = self.rate
+            
+        if self.allowance < 1:
+            return False
+            
+        self.allowance -= 1
+        return True
+
+rate_limiter = RateLimiter()
+
+def handle_rate_limit(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        for attempt in range(RETRY_COUNT):
+            if rate_limiter.is_allowed():
+                try:
+                    return await func(*args, **kwargs)
+                except Exception as e:
+                    if "Too Many Requests" in str(e) and attempt < RETRY_COUNT - 1:
+                        await asyncio.sleep(RETRY_DELAY * (attempt + 1))
+                        continue
+                    raise
+            await asyncio.sleep(RETRY_DELAY)
+        return await func(*args, **kwargs)
+    return wrapper
 
 def is_admin(user_id: int) -> bool:
     """Admin tekshiruv"""
@@ -95,6 +144,7 @@ async def handle_error(update: Update, context: ContextTypes.DEFAULT_TYPE, error
     elif update.callback_query:
         await update.callback_query.message.reply_text(error_message, reply_markup=reply_markup)
 
+@handle_rate_limit
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Start buyrug'i"""
     try:
@@ -133,6 +183,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Start xatolik: {e}")
         await update.message.reply_text("Xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.")
 
+@handle_rate_limit
 async def new_topic_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("Yangi mavzu tugmasi bosildi")
     print("Yangi mavzu tugmasi bosildi")
@@ -205,6 +256,7 @@ async def ask_next_topic_step(update, context):
         context.user_data.pop('topic', None)
         context.user_data.pop('topic_step', None)
 
+@handle_rate_limit
 async def topic_text_step(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         if not is_admin(update.message.from_user.id):
@@ -449,148 +501,4 @@ async def save_topic_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
                         error_text = await resp.text()
                         logger.error(f"Topic saqlash xatolik: {error_text}")
                         await update.message.reply_text(
-                            "Mavzuni saqlashda xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.",
-                            reply_markup=ReplyKeyboardMarkup([[KeyboardButton(CANCEL_BTN)]], resize_keyboard=True)
-                        )
-    except Exception as e:
-        logger.error(f"save_topic_handler xatolik: {e}")
-        # Xatolik yuz berganda asosiy menyuga qaytish
-        keyboard = [
-            [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
-            [KeyboardButton("📊 Statistika")],
-            [KeyboardButton(NEW_TOPIC_BTN)],
-            [KeyboardButton(DELETE_TOPIC_BTN)]
-        ]
-        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
-        await update.message.reply_text(
-            "Xatolik yuz berdi. Asosiy menyuga qaytdingiz.",
-            reply_markup=reply_markup
-        )
-        context.user_data.pop('topic', None)
-        context.user_data.pop('topic_step', None)
-
-async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Contact ma'lumotlarini qabul qilish"""
-    try:
-        contact = update.message.contact
-        if not contact:
-            await update.message.reply_text("Contact ma'lumotlari topilmadi. Iltimos, qaytadan urinib ko'ring.")
-            return
-
-        data = {
-            'user_id': update.effective_user.id,
-            'first_name': contact.first_name,
-            'last_name': contact.last_name,
-            'phone_number': contact.phone_number
-        }
-        
-        logger.info(f"Contact ma'lumotlari yuborilmoqda: {data}")
-        logger.info(f"API URL: {API_URL}")
-        
-        async with aiohttp.ClientSession() as session:
-            try:
-                async with session.post(f"{API_URL}/api/contacts", json=data) as resp:
-                    response_text = await resp.text()
-                    logger.info(f"Server javobi: Status={resp.status}, Response={response_text}")
-                    
-                    if resp.status == 200:
-                        keyboard = [[KeyboardButton("🌐 Web App", web_app=WebAppInfo(url=WEBAPP_URL))]]
-                        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
-                        
-                        await update.message.reply_text(
-                            "Contact ma'lumotlari saqlandi! Mavzularni ko'rish uchun Web App tugmasini bosing:",
-                            reply_markup=reply_markup
-                        )
-                    else:
-                        error_msg = f"Contact saqlashda xatolik yuz berdi (Status: {resp.status}).\n"
-                        try:
-                            error_data = json.loads(response_text)
-                            if 'details' in error_data:
-                                error_msg += f"Xatolik tafsiloti: {error_data['details']}\n"
-                        except:
-                            error_msg += f"Server javobi: {response_text}\n"
-                        
-                        error_msg += "Iltimos, qaytadan urinib ko'ring.\n"
-                        error_msg += "Agar muammo davom etsa, administrator bilan bog'laning."
-                        
-                        logger.error(error_msg)
-                        await update.message.reply_text(error_msg)
-            except aiohttp.ClientError as e:
-                error_msg = f"API ulanish xatolik: {str(e)}"
-                logger.error(error_msg)
-                await update.message.reply_text(
-                    "Server bilan bog'lanishda xatolik yuz berdi. Iltimos, keyinroq qaytadan urinib ko'ring.\n"
-                    "Agar muammo davom etsa, administrator bilan bog'laning."
-                )
-    except Exception as e:
-        error_msg = f"Contact handler xatolik: {str(e)}"
-        logger.error(error_msg)
-        await update.message.reply_text(
-            "Kutilmagan xatolik yuz berdi. Iltimos, keyinroq qaytadan urinib ko'ring.\n"
-            "Agar muammo davom etsa, administrator bilan bog'laning."
-        )
-
-async def stats_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update.message.from_user.id):
-        await update.message.reply_text("Siz admin emassiz!")
-        return
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f"{API_URL}/api/stats") as resp:
-                data = await resp.json()
-                await update.message.reply_text(
-                    f"📊 Statistika:\nJami foydalanuvchilar: {data.get('users_count', 0)}"
-                )
-    except Exception as e:
-        logger.error(f"Statistika olishda xatolik: {e}")
-        await update.message.reply_text("Statistika olishda xatolik yuz berdi.")
-
-async def video_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Foydalanuvchi uchun: topic yaratish jarayonida emas
-    if 'topic_step' in context.user_data:
-        return
-    await update.message.reply_text("Video yoki havola uchun bu botda faqat adminlar uchun maxsus bo'lim mavjud.")
-
-async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Foydalanuvchi uchun: topic yaratish jarayonida emas
-    if 'topic_step' in context.user_data:
-        return
-    await update.message.reply_text("Rasm yuborish adminlar uchun mo'ljallangan.")
-
-async def delete_topic_button(update, context):
-    if not is_admin(update.message.from_user.id):
-        return
-    async with aiohttp.ClientSession() as session:
-        async with session.get(f"{API_URL}/api/topics") as resp:
-            topics = await resp.json()
-            if not topics:
-                await update.message.reply_text("Mavzular topilmadi.")
-                return
-            buttons = [
-                [InlineKeyboardButton(t['title'], callback_data=f"delete_topic_{t['id']}")]
-                for t in topics
-            ]
-            reply_markup = InlineKeyboardMarkup(buttons)
-            await update.message.reply_text("O'chirmoqchi bo'lgan mavzuni tanlang:", reply_markup=reply_markup)
-
-async def delete_topic_callback(update, context):
-    query = update.callback_query
-    if not is_admin(query.from_user.id):
-        await query.answer("Faqat adminlar uchun.")
-        return
-    topic_id = int(query.data.replace("delete_topic_", ""))
-    async with aiohttp.ClientSession() as session:
-        async with session.delete(f"{API_URL}/api/topics/{topic_id}") as resp:
-            if resp.status == 200:
-                # Asosiy menyu keyboard
-                keyboard = [
-                    [KeyboardButton("🌐 Webapp", web_app=WebAppInfo(url=WEBAPP_URL))],
-                    [KeyboardButton("📊 Statistika")],
-                    [KeyboardButton(NEW_TOPIC_BTN)],
-                    [KeyboardButton(DELETE_TOPIC_BTN)]
-                ]
-                reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
-                await query.edit_message_text("Mavzu o'chirildi! Asosiy menyuga qaytdingiz.")
-                await query.message.reply_text("Asosiy menyu:", reply_markup=reply_markup)
-            else:
-                await query.edit_message_text("O'chirishda xatolik yuz berdi.") 
+                            "Mavzuni saqlashda

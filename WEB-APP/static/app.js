@@ -1,5 +1,25 @@
 let tg = window.Telegram.WebApp;
 
+// Initialize error logging
+const logError = (error, context) => {
+    console.error(`[${new Date().toISOString()}] ${context}:`, error);
+    if (error.response) {
+        console.error('Response:', error.response);
+    }
+};
+
+// Initialize WebApp with error handling
+try {
+    if (!tg) {
+        throw new Error('Telegram WebApp not found');
+    }
+    tg.ready();
+    tg.expand();
+} catch (error) {
+    logError(error, 'WebApp Initialization');
+    showError('Web ilovani yuklashda xatolik yuz berdi. Iltimos sahifani yangilang.');
+}
+
 // Hamburger menu (Bootstrap bilan)
 const hamburger = document.getElementById('hamburger-menu');
 const sidebar = document.getElementById('sidebar');
@@ -32,16 +52,19 @@ if (overlay) {
 const searchInput = document.getElementById('search-input');
 let allTopics = [];
 
-// Error handling
-function showError(message) {
+// Enhance error display
+function showError(message, duration = 5000) {
     const errorDiv = document.createElement('div');
     errorDiv.className = 'alert alert-danger alert-dismissible fade show';
     errorDiv.innerHTML = `
-        ${message}
+        <div class="d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <div>${message}</div>
+        </div>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     `;
     document.body.insertBefore(errorDiv, document.body.firstChild);
-    setTimeout(() => errorDiv.remove(), 5000);
+    setTimeout(() => errorDiv.remove(), duration);
 }
 
 // Loading state
@@ -252,10 +275,6 @@ function renderVideo(url) {
     }
     return `<video src="${url}" controls style="max-width:360px;"></video>`;
 }
-
-// Telegram WebApp ready
-tg.ready();
-tg.expand();
 
 // Load topics when page loads
 loadTopics();
