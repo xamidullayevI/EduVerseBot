@@ -157,15 +157,11 @@ async function showTopic(id, li) {
     try {
         document.querySelectorAll('.sidebar .list-group-item').forEach(el => el.classList.remove('active'));
         if (li) li.classList.add('active');
-        
-        const topic = await apiCall(`/api/topics/${id}`);
         const main = document.getElementById('main-content');
+        main.innerHTML = `<div class="loader text-center my-5"><div class="spinner-border text-primary" role="status"></div><div>Mavzu yuklanmoqda...</div></div>`;
+        const topic = await apiCall(`/api/topics/${id}`);
         main.innerHTML = formatTopicContent(topic);
-        
-        // Welcome stats yangilash
         loadWelcomeStats();
-        
-        // Mobilda sidebar avtomatik yopilsin
         if (window.innerWidth < 992) {
             sidebar.classList.remove('open');
             document.body.classList.remove('menu-open');
@@ -408,8 +404,6 @@ function updateWelcomeFeedbackAndStats() {
 document.body.addEventListener('submit', async function(e) {
     if (e.target.classList.contains('feedback-form')) {
         e.preventDefault();
-        alert('Feedback form submit ishladi!');
-        console.log('Feedback form submit ishladi!');
         const form = e.target;
         const topicId = form.getAttribute('data-topic-id');
         const textarea = form.querySelector('textarea');
