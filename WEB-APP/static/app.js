@@ -320,47 +320,49 @@ if (videoLink) {
     };
 }
 
-form.onsubmit = async e => {
-    e.preventDefault();
-    const data = {
-        title: form.title.value,
-        structure: form.structure.value,
-        examples: form.examples.value,
-        image_url: '',
-        video_url: ''
+if (form) {
+    form.onsubmit = async e => {
+        e.preventDefault();
+        const data = {
+            title: form.title.value,
+            structure: form.structure.value,
+            examples: form.examples.value,
+            image_url: '',
+            video_url: ''
+        };
+        // Rasm yuklash yoki link
+        if (imageFile.files[0]) {
+            const fd = new FormData();
+            fd.append('file', imageFile.files[0]);
+            const res = await fetch('/api/upload', { method: 'POST', body: fd });
+            const json = await res.json();
+            data.image_url = json.url;
+        } else if (imageLink.value) {
+            data.image_url = imageLink.value;
+        }
+        // Video yuklash yoki link
+        if (videoFile.files[0]) {
+            const fd = new FormData();
+            fd.append('file', videoFile.files[0]);
+            const res = await fetch('/api/upload', { method: 'POST', body: fd });
+            const json = await res.json();
+            data.video_url = json.url;
+        } else if (videoLink.value) {
+            data.video_url = videoLink.value;
+        }
+        // Yangi mavzuni saqlash
+        await fetch('/api/topics', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        form.reset();
+        imagePreview.innerHTML = '';
+        videoPreview.innerHTML = '';
+        loadTopics();
+        alert('Mavzu qo\'shildi!');
     };
-    // Rasm yuklash yoki link
-    if (imageFile.files[0]) {
-        const fd = new FormData();
-        fd.append('file', imageFile.files[0]);
-        const res = await fetch('/api/upload', { method: 'POST', body: fd });
-        const json = await res.json();
-        data.image_url = json.url;
-    } else if (imageLink.value) {
-        data.image_url = imageLink.value;
-    }
-    // Video yuklash yoki link
-    if (videoFile.files[0]) {
-        const fd = new FormData();
-        fd.append('file', videoFile.files[0]);
-        const res = await fetch('/api/upload', { method: 'POST', body: fd });
-        const json = await res.json();
-        data.video_url = json.url;
-    } else if (videoLink.value) {
-        data.video_url = videoLink.value;
-    }
-    // Yangi mavzuni saqlash
-    await fetch('/api/topics', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    });
-    form.reset();
-    imagePreview.innerHTML = '';
-    videoPreview.innerHTML = '';
-    loadTopics();
-    alert('Mavzu qo\'shildi!');
-};
+}
 
 // Sidebar faqat overlay ustiga bosilganda yopiladi
 document.addEventListener('click', function(e) {
