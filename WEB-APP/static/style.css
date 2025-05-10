@@ -28,7 +28,75 @@ body {
     padding: 24px 12px 12px 12px;
     min-height: 100vh;
     margin: 0;
+    position: relative;
+    left: 0;
+    top: 0;
+    width: 220px;
+    transition: left 0.3s;
+    z-index: 1051;
 }
+
+@media (max-width: 991px) {
+    .sidebar {
+        position: fixed;
+        left: -260px;
+        top: 56px;
+        width: 220px;
+        height: calc(100vh - 56px);
+        border-radius: 0;
+        box-shadow: none;
+        margin: 0;
+        padding: 24px 12px 12px 12px;
+        transition: left 0.3s;
+        z-index: 1051;
+    }
+    .sidebar.open {
+        left: 0;
+    }
+    .hamburger {
+        display: flex;
+    }
+}
+
+.hamburger {
+    display: none;
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    width: 32px;
+    height: 32px;
+    flex-direction: column;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1100;
+}
+.hamburger span {
+    height: 4px;
+    width: 100%;
+    background: #2481cc;
+    margin: 5px 0;
+    border-radius: 2px;
+    display: block;
+    transition: 0.3s;
+}
+
+.main {
+    background: #fff;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 32px 16px;
+    margin: 16px 0;
+    min-height: 80vh;
+}
+
+@media (max-width: 991px) {
+    .main {
+        border-radius: 0;
+        margin: 0;
+        padding: 10px 2px;
+    }
+}
+
 
 .sidebar h5 {
     color: #232946;
