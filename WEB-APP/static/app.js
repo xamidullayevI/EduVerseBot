@@ -589,6 +589,8 @@ socket.on('news_update', (data) => {
 });
 
 // Update loadWelcomeStats function
+// Zamonaviy UI uchun yangiliklar va statistikalarni card-style, badge va progress-bar bilan render qilish
+
 function loadWelcomeStats() {
     // Statistika
     fetch('/api/stats')
