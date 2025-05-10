@@ -181,13 +181,25 @@ function formatTopicContent(topic) {
                 <div class="structure">${topic.structure}</div>
             </div>
             <div class="topic-media">
-                ${topic.image_url ? `<img src="${topic.image_url}" alt="Rasm">` : ''}
+                ${topic.image_url ? `
+                    <div class="image-container">
+                        <img src="${topic.image_url}" 
+                             alt="Rasm" 
+                             loading="lazy"
+                             decoding="async"
+                             onerror="this.onerror=null; this.src='/static/img/placeholder.png';"
+                             class="topic-image"
+                             style="max-width: 100%; height: auto;">
+                        <div class="image-loader"></div>
+                    </div>
+                ` : ''}
                 ${topic.video_url ? renderVideo(topic.video_url) : ''}
             </div>
             <div class="topic-examples">
                 <div class="examples-accordion">
                     <div class="examples-header collapsed">
-                        Misollar
+                        <span>Misollar</span>
+                        <i class="bi bi-chevron-down"></i>
                     </div>
                     <div class="examples-content">
                         <div class="structure">${topic.examples}</div>
@@ -665,4 +677,4 @@ function loadWelcomeStats() {
 // Load stats when page loads
 document.addEventListener('DOMContentLoaded', loadWelcomeStats);
 // Update stats every 30 seconds
-setInterval(loadWelcomeStats, 30000); 
+setInterval(loadWelcomeStats, 30000);

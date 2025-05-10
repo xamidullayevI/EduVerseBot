@@ -16,49 +16,72 @@ from datetime import datetime
 import traceback
 import re
 from functools import wraps
+import eventlet
 
-# Log yozish sozlamalari
-if not os.path.exists('logs'):
-    os.makedirs('logs')
-
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO,
-    handlers=[
-        RotatingFileHandler('logs/webapp.log', maxBytes=10240, backupCount=10),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
-
+# Load environment variables
 load_dotenv()
 pymysql.install_as_MySQLdb()
 
+# App initialization
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Xavfsizlik sozlamalari
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
-app.config['DEBUG'] = False  # Production'da False bo'lishi kerak
+# Database configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_size': 10,
+    'pool_timeout': 30,
+    'pool_recycle': 1800,
+    'max_overflow': 2
+}
 
-# Fayl yuklash sozlamalari
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'mov'}
-MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50MB
-
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
-
-# Cache sozlamalari
+# Cache configuration
 cache = Cache(app, config={
     'CACHE_TYPE': 'simple',
     'CACHE_DEFAULT_TIMEOUT': 300
 })
 
-# --- Bazani sozlash ---
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# CORS configuration
+CORS(app)
+
+# WebSocket configuration
+socketio = SocketIO(
+    app,
+    async_mode='eventlet',
+    ping_timeout=60,
+    ping_interval=25,
+    cors_allowed_origins="*",
+    max_http_buffer_size=10e6
+)
+
+# Static files configuration
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+UPLOAD_FOLDER = os.path.join(app.static_folder, 'uploads')
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Ensure upload directory exists
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Logging configuration
+if not os.path.exists('logs'):
+    os.makedirs('logs')
+
+logging.basicConfig(
+    handlers=[
+        RotatingFileHandler(
+            'logs/webapp.log',
+            maxBytes=10485760,  # 10MB
+            backupCount=5
+        ),
+        logging.StreamHandler()
+    ],
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s: %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Initialize database
+db = SQLAlchemy(app)
 
 # --- Baza avtomatik yaratiladi ---
 db_url = app.config['SQLALCHEMY_DATABASE_URI']
@@ -68,10 +91,6 @@ if not database_exists(engine.url):
     logger.info(f"Baza yaratildi: {engine.url}")
 else:
     logger.info(f"Baza allaqachon mavjud: {engine.url}")
-
-# --- Baza ulanishi ---
-db = SQLAlchemy(app)
-CORS(app)
 
 # --- Modellar ---
 class Contact(db.Model):
@@ -107,7 +126,7 @@ class Feedback(db.Model):
 
 def allowed_file(filename):
     """Fayl kengaytmasini tekshirish"""
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'mov'}
 
 def generate_filename(filename):
     """Xavfsiz fayl nomi yaratish"""
@@ -117,7 +136,6 @@ def generate_filename(filename):
 def format_sentences(text):
     if not text:
         return ""
-    # . ! ? : dan keyin yangi qator yoki bo'shliq bo'lsa ham bo'lib yuboradi
     sentences = re.split(r'(?<=[.!?:])(?:\s*|\n+)', text.strip())
     formatted = []
     auto_num = 1
@@ -125,12 +143,10 @@ def format_sentences(text):
         sentence = sentence.strip()
         if not sentence:
             continue
-        # Qalin qilish: oxirida : bo'lsa, oxirgi : oldini qalin qilamiz va raqam ham qo'shilmaydi
         if sentence.endswith(':'):
             main = sentence[:-1].strip()
             out = f'<b>{main}</b>:'
         else:
-            # Gap boshida raqam va nuqta bo'lsa, olib tashlaymiz
             sentence = re.sub(r'^\d+\.\s*', '', sentence)
             out = f'{auto_num}. {sentence}'
             auto_num += 1
@@ -147,7 +163,17 @@ def require_api_key(f):
         return f(*args, **kwargs)
     return decorated
 
-# Error handlers
+@app.after_request
+def add_header(response):
+    """Add headers to optimize caching and performance."""
+    if 'Cache-Control' not in response.headers:
+        if request.path.startswith('/static/'):
+            response.headers['Cache-Control'] = 'public, max-age=31536000'
+        else:
+            response.headers['Cache-Control'] = 'public, max-age=300'
+    response.headers['Vary'] = 'Accept-Encoding'
+    return response
+
 @app.errorhandler(404)
 def not_found_error(error):
     return jsonify({'error': 'Not found'}), 404
@@ -155,6 +181,7 @@ def not_found_error(error):
 @app.errorhandler(500)
 def internal_error(error):
     db.session.rollback()
+    logger.error(f"Server Error: {error}")
     return jsonify({'error': 'Internal server error'}), 500
 
 @app.errorhandler(Exception)
@@ -162,6 +189,25 @@ def handle_exception(e):
     logger.error(f"Unhandled Exception: {str(e)}")
     logger.error(traceback.format_exc())
     return jsonify({'error': 'Internal server error'}), 500
+
+# Health check endpoint
+@app.route('/health')
+@cache.cached(timeout=60)
+def health_check():
+    try:
+        db.session.execute('SELECT 1')
+        db.session.commit()
+        return jsonify({
+            'status': 'healthy',
+            'database': 'connected',
+            'timestamp': str(datetime.now())
+        })
+    except Exception as e:
+        logger.error(f'Health check failed: {e}')
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e)
+        }), 500
 
 # --- API: contact saqlash ---
 @app.route('/api/contacts', methods=['POST'])
@@ -190,7 +236,6 @@ def save_contact():
             return jsonify({'error': error_msg}), 400
 
         try:
-            # Baza ulanishini tekshirish
             db.session.execute(text('SELECT 1'))
             logger.info("Baza ulanishi muvaffaqiyatli")
 
@@ -487,4 +532,4 @@ with app.app_context():
     db.create_all()
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=False)
